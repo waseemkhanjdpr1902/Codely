@@ -2,44 +2,33 @@
 
 import { useState } from "react";
 
-export default function CodelyPremium() {
-  const [prompt, setPrompt] = useState("");
-  const [code, setCode] = useState("// AI generated code appears here");
-  const [preview, setPreview] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function Home() {
+  const [preview, setPreview] = useState(
+    "<h1 style='font-family:sans-serif'>Your app preview renders here</h1>"
+  );
 
-  const generateApp = async () => {
-    if (!prompt) return;
-
-    setLoading(true);
-
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    const data = await res.json();
-
-    if (data.html) {
-      setCode(data.html);
-
-      setPreview(`
-        <style>${data.css || ""}</style>
-        ${data.html}
-        <script>${data.js || ""}</script>
-      `);
-    }
-
-    setLoading(false);
+  const generate = () => {
+    setPreview(`
+      <div style="padding:40px;font-family:sans-serif">
+        <h1>Generated Demo App</h1>
+        <button style="
+          padding:12px 24px;
+          border:none;
+          border-radius:12px;
+          background:#06b6d4;
+          color:white;
+          cursor:pointer;
+        ">
+          Working Button
+        </button>
+      </div>
+    `);
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-white/10 sticky top-0 z-50 bg-slate-950/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <header className="border-b border-white/10 sticky top-0 bg-slate-950/80 backdrop-blur z-50">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
             Codely AI
           </h1>
@@ -51,66 +40,54 @@ export default function CodelyPremium() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-10">
-        <section className="text-center mb-12">
-          <h2 className="text-6xl font-bold">
+        <div className="text-center">
+          <h2 className="text-6xl font-bold leading-tight">
             Describe your app.
+            <br />
+            <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
+              Codely builds it.
+            </span>
           </h2>
 
-          <p className="text-slate-400 mt-4 text-lg">
-            Codely builds it instantly.
+          <p className="text-slate-400 mt-6 text-lg">
+            Generate SaaS products with AI
           </p>
 
-          <div className="mt-8 max-w-4xl mx-auto flex gap-3 bg-white/5 border border-white/10 rounded-3xl p-3">
+          <div className="mt-10 flex gap-3 max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-3">
             <input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Build OLX clone with login, chat, dashboard..."
-              className="flex-1 bg-transparent outline-none px-4"
+              className="flex-1 bg-transparent outline-none px-4 text-lg"
+              placeholder="Build an ecommerce website..."
             />
 
             <button
-              onClick={generateApp}
-              className="px-7 py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 font-semibold"
+              onClick={generate}
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 font-semibold"
             >
-              {loading ? "Generating..." : "Generate App"}
+              Generate App
             </button>
           </div>
-        </section>
+        </div>
 
-        <section className="grid grid-cols-12 gap-6">
-          <aside className="col-span-2 rounded-3xl border border-white/10 bg-white/5 p-5">
-            <div className="space-y-4 text-slate-300">
-              <div>Projects</div>
-              <div>Templates</div>
-              <div>Assets</div>
-              <div>Database</div>
-              <div>Deploy</div>
-              <div>Settings</div>
-            </div>
-          </aside>
+        <div className="grid grid-cols-2 gap-6 mt-16">
+          <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 min-h-[500px]">
+            <h3 className="font-semibold mb-5">Generated Code</h3>
 
-          <section className="col-span-5 rounded-3xl border border-white/10 bg-slate-900 p-5 min-h-[650px]">
-            <div className="font-semibold mb-4">
-              Generated Code
-            </div>
-
-            <pre className="text-sm text-cyan-300 whitespace-pre-wrap overflow-auto">
-              {code}
+            <pre className="text-cyan-300 text-sm">
+{`function Demo(){
+  return <PremiumApp/>
+}`}
             </pre>
-          </section>
+          </div>
 
-          <section className="col-span-5 rounded-3xl bg-white p-5 min-h-[650px]">
-            <div className="font-semibold text-black mb-4">
-              Live Preview
-            </div>
+          <div className="rounded-3xl bg-white p-6 text-black min-h-[500px]">
+            <h3 className="font-semibold mb-5">Live Preview</h3>
 
             <iframe
-              title="preview"
               srcDoc={preview}
-              className="w-full h-[560px] rounded-xl border"
+              className="w-full h-[420px] rounded-xl border"
             />
-          </section>
-        </section>
+          </div>
+        </div>
       </main>
     </div>
   );
