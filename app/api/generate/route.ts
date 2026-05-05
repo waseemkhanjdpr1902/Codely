@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { connectDB } from "@/lib/mongodb";
-import Project from "@/models/Project";
 
 export async function POST(req) {
   try {
@@ -14,17 +12,8 @@ export async function POST(req) {
       );
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY missing" },
-        { status: 500 }
-      );
-    }
-
     const openai = new OpenAI({
-      apiKey,
+      apiKey: process.env.OPENAI_API_KEY,
     });
 
     const response =
@@ -34,72 +23,35 @@ export async function POST(req) {
           {
             role: "system",
             content:
-              `You are Codely AI.
-Return JSON only.
-
-Format:
+              `Return JSON:
 {
- "title":"",
- "html":"",
- "css":"",
- "js":""
-}
-
-No markdown.
-No explanation.`
+"title":"",
+"html":"",
+"css":"",
+"js":""
+}`
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.7,
       });
 
     const raw =
       response.choices?.[0]?.message?.content || "{}";
 
-    let parsed;
-
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = {
-        title: "Generated App",
-        html: raw,
-        css: "",
-        js: "",
-      };
-    }
-
-    await connectDB();
-
-    const saved = await Project.create({
-      prompt,
-      title: parsed.title,
-      html: parsed.html,
-      css: parsed.css,
-      js: parsed.js,
-    });
+    const parsed = JSON.parse(raw);
 
     return NextResponse.json({
       success: true,
-      projectId: saved._id,
       ...parsed,
     });
 
-  } catch (error) {
-    console.error(error);
-
+  } catch (err) {
     return NextResponse.json(
-      {
-        error:
-          error.message ||
-          "Generation failed",
-      },
-      {
-        status: 500,
-      }
+      { error: err.message },
+      { status: 500 }
     );
   }
 }
