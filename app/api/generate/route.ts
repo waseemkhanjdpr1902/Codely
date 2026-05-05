@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { connectDB } from "@/lib/mongodb";
+import Project from "@/models/Project";
 
 export async function POST(req) {
   try {
@@ -7,7 +9,7 @@ export async function POST(req) {
 
     if (!prompt) {
       return NextResponse.json(
-        { error: "No prompt provided" },
+        { error: "Prompt missing" },
         { status: 400 }
       );
     }
@@ -16,49 +18,88 @@ export async function POST(req) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY is missing" },
+        { error: "OPENAI_API_KEY missing" },
         { status: 500 }
       );
     }
 
-    // Initialize inside handler
     const openai = new OpenAI({
       apiKey,
     });
 
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Codely AI. Output ONLY code. No explanations. No markdown blocks. Return a complete single-file HTML document including CSS and JS.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-    });
+    const response =
+      await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are Codely AI.
+Return JSON only.
 
-    const generatedHtml =
-      aiResponse.choices?.[0]?.message?.content || "";
+Format:
+{
+ "title":"",
+ "html":"",
+ "css":"",
+ "js":""
+}
+
+No markdown.
+No explanation.`
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+      });
+
+    const raw =
+      response.choices?.[0]?.message?.content || "{}";
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = {
+        title: "Generated App",
+        html: raw,
+        css: "",
+        js: "",
+      };
+    }
+
+    await connectDB();
+
+    const saved = await Project.create({
+      prompt,
+      title: parsed.title,
+      html: parsed.html,
+      css: parsed.css,
+      js: parsed.js,
+    });
 
     return NextResponse.json({
-      output: generatedHtml,
+      success: true,
+      projectId: saved._id,
+      ...parsed,
     });
-  } catch (error) {
-    console.error("OpenAI API Failure:", error);
 
-    const msg =
-      error?.message?.includes("insufficient_quota")
-        ? "OpenAI API Key has no credits left."
-        : error?.message || "Internal Server Error";
+  } catch (error) {
+    console.error(error);
 
     return NextResponse.json(
-      { error: msg },
-      { status: 500 }
+      {
+        error:
+          error.message ||
+          "Generation failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
