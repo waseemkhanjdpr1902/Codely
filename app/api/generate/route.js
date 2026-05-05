@@ -1,44 +1,46 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// This initializes the OpenAI client using the secret key you added to Vercel
+// Initialize OpenAI with your Secret Key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req) {
   try {
-    // 1. Get the user's prompt from the frontend request
+    // 1. Parse the incoming request body
     const { prompt } = await req.json();
 
     if (!prompt) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
     }
 
-    // 2. Send the prompt to OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // You can use "gpt-4o" or "gpt-3.5-turbo"
+    // 2. Request code generation from OpenAI
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
-          content: "You are Codely AI, an expert web developer. Output ONLY valid, high-quality HTML code with Tailwind CSS and JavaScript embedded. Do not provide explanations, do not use markdown code blocks like ```html. Start directly with <!DOCTYPE html>." 
+          content: "You are Codely AI. Output ONLY code. No explanations. No markdown blocks. Return a complete, single-file HTML document including CSS and JS." 
         },
         { role: "user", content: prompt }
       ],
       temperature: 0.7,
     });
 
-    // 3. Extract the generated code
-    const generatedCode = response.choices[0].message.content;
+    const generatedHtml = aiResponse.choices[0].message.content;
 
-    // 4. Send the code back to your frontend
-    return NextResponse.json({ output: generatedCode });
+    // 3. Return the data in a clear JSON format
+    return NextResponse.json({ output: generatedHtml });
 
   } catch (error) {
-    console.error("OpenAI API Error:", error);
-    return NextResponse.json(
-      { error: "AI generation failed. Check OpenAI billing/credits." }, 
-      { status: 500 }
-    );
+    console.error("OpenAI API Failure:", error);
+    
+    // Check for specific OpenAI errors (like insufficient credits)
+    const errorMessage = error.message.includes("insufficient_quota") 
+      ? "OpenAI API Key has no credits left. Please add $5 to your OpenAI billing."
+      : "Internal Server Error";
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
