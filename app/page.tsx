@@ -1,65 +1,74 @@
 "use client";
 import { useState } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { auth } from '@/lib/firebase'; // Ensure your firebase.js is in the 'lib' folder
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import Editor from "@monaco-editor/react";
 
 export default function CodelyApp() {
+  const [code, setCode] = useState("<!DOCTYPE html>\n<html>\n<body>\n  <h1>Live Preview Active</h1>\n</body>\n</html>");
   const [prompt, setPrompt] = useState("");
-  const [code, setCode] = useState("// Your AI-generated code will appear here...");
 
-  const generateCode = async () => {
-    // 1. Call AI API (Simplified example)
-    const response = await fetch('/api/generate', {
-      method: 'POST',
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await response.json();
-    setCode(data.output);
-
-    // 2. Save to Firebase
-    if (auth.currentUser) {
-      await addDoc(collection(db, "projects"), {
-        userId: auth.currentUser.uid,
-        prompt: prompt,
-        code: data.output,
-        timestamp: new Date()
-      });
+  // --- FEATURE 3: FIREBASE LOGIN LOGIC ---
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      alert(`Welcome to Codely, ${result.user.displayName}!`);
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Login failed. Check Firebase Console Auth settings.");
     }
   };
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Hero Section from your UI */}
-      <nav className="flex justify-between p-6 border-b">
-        <h1 className="text-2xl font-bold">Codely</h1>
-        <button className="bg-blue-500 text-white px-4 py-2 rounded">Login</button>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Navigation with Login Button */}
+      <nav className="p-4 bg-white border-b flex justify-between items-center">
+        <h1 className="text-xl font-bold">Codely</h1>
+        <button 
+          onClick={handleLogin} 
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        >
+          Login with Google
+        </button>
       </nav>
 
-      <div className="p-10 max-w-6xl mx-auto">
-        <div className="mb-8 text-center">
-          <h2 className="text-4xl font-bold mb-4">What do you want to build?</h2>
-          <div className="flex gap-2">
-            <input 
-              className="flex-1 p-4 border rounded-lg shadow-sm"
-              placeholder="e.g. Build a portfolio website with a contact form..."
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <button onClick={generateCode} className="bg-black text-white px-8 rounded-lg">Generate</button>
-          </div>
+      <main className="flex-1 p-6 flex flex-col gap-4">
+        {/* Input Area */}
+        <div className="flex gap-2">
+          <input 
+            className="flex-1 p-3 border rounded shadow-sm"
+            placeholder="Describe your app..."
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <button className="px-6 bg-black text-white rounded">Generate</button>
         </div>
 
-        {/* The Editor UI */}
-        <div className="rounded-xl overflow-hidden border shadow-2xl">
-          <Editor
-            height="500px"
-            defaultLanguage="html"
-            theme="vs-dark"
-            value={code}
-            onChange={(val) => setCode(val || "")}
-          />
+        {/* --- FEATURE 4: SIDE-BY-SIDE EDITOR & PREVIEW --- */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 h-[600px]">
+          {/* Left: Code Editor */}
+          <div className="border rounded-xl overflow-hidden shadow-lg">
+            <Editor 
+              height="100%" 
+              defaultLanguage="html" 
+              theme="vs-dark" 
+              value={code} 
+              onChange={(val) => setCode(val || "")} 
+            />
+          </div>
+
+          {/* Right: Live Preview Rendering */}
+          <div className="border rounded-xl overflow-hidden shadow-lg bg-white">
+            <div className="bg-gray-100 p-2 text-xs font-mono border-b">LIVE PREVIEW</div>
+            <iframe 
+              srcDoc={code} 
+              className="w-full h-full border-none" 
+              title="Codely Live Preview"
+              sandbox="allow-scripts"
+            />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
