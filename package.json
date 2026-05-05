@@ -1,10 +1,8 @@
-{
-  "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "firebase": "^10.0.0",
-    "@monaco-editor/react": "latest",
-    "lucide-react": "latest"
-  }
+"dependencies": {
+  "next": "latest",
+  "react": "latest",
+  "react-dom": "latest",
+  "firebase": "^10.0.0",
+  "openai": "^4.0.0", 
+  "@monaco-editor/react": "latest"
 }
