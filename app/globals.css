@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add this to force a modern look immediately */
 body {
-  background-color: #f3f4f6; /* Light gray modern background */
+  font-family: sans-serif;
+  background-color: #f8fafc;
   margin: 0;
-  padding: 0;
 }
