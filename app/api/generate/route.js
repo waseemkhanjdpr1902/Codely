@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const { prompt } = await req.json();
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize INSIDE the handler
+    // Initialize inside handler
     const openai = new OpenAI({
       apiKey,
     });
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "You are Codely AI. Output ONLY code. No explanations. No markdown blocks. Return a complete, single-file HTML document including CSS and JS.",
+            "You are Codely AI. Output ONLY code. No explanations. No markdown blocks. Return a complete single-file HTML document including CSS and JS.",
         },
         {
           role: "user",
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       output: generatedHtml,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("OpenAI API Failure:", error);
 
     const msg =
