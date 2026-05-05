@@ -2,201 +2,177 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Nexus IDE | AI-Powered Web Studio</title>
-    <!-- Professional Metadata for App/Web Building -->
-    <meta name="description" content="Professional cloud-based IDE for building and deploying full-stack apps.">
+    <title>Codely | Professional AI Workspace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
     <style>
         :root {
-            --bg-base: #0a0c10;
-            --bg-sidebar: #12151a;
-            --bg-editor: #161b22;
-            --border: #30363d;
-            --accent: #2f81f7;
-            --text-muted: #8b949e;
-            --text-bright: #f0f6fc;
-            --terminal-bg: #010409;
+            --sidebar-width: 260px;
+            --ai-pane-width: 340px;
+            --header-height: 50px;
+            --term-height: 220px;
+            
+            /* Professional Dark Palette */
+            --bg-deep: #050505;
+            --bg-mid: #121212;
+            --bg-light: #1e1e1e;
+            --border: #2d2d2d;
+            --accent: #007aff; /* Codely Blue */
+            --text: #e0e0e0;
+            --text-dim: #909090;
         }
 
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            background: var(--bg-base);
-            color: var(--text-bright);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: grid;
-            grid-template-columns: 240px 1fr 320px;
-            grid-template-rows: 48px 1fr 200px;
+            background: var(--bg-deep);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             height: 100vh;
-            overflow: hidden;
+            display: grid;
+            grid-template-areas: 
+                "head head head"
+                "nav edit ai"
+                "nav term ai";
+            grid-template-columns: var(--sidebar-width) 1fr var(--ai-pane-width);
+            grid-template-rows: var(--header-height) 1fr var(--term-height);
         }
 
-        /* --- Header / Toolbar --- */
+        /* --- Header: Brand & Global Actions --- */
         header {
-            grid-column: 1 / -1;
-            background: var(--bg-sidebar);
+            grid-area: head;
+            background: var(--bg-mid);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 20px;
+            padding: 0 20px;
+            justify-content: space-between;
         }
 
-        .run-btn {
-            background: #238636;
-            color: white;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 4px;
-            font-weight: bold;
+        .brand { font-weight: 800; letter-spacing: -0.5px; color: var(--accent); font-size: 20px; }
+
+        .controls { display: flex; gap: 12px; }
+        .btn {
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            border: 1px solid var(--border);
         }
+        .btn-run { background: #2ea44f; color: white; border: none; }
 
-        /* --- File Explorer --- */
-        .sidebar {
-            grid-row: 2 / -1;
-            background: var(--bg-sidebar);
+        /* --- Navigation: File System --- */
+        nav {
+            grid-area: nav;
+            background: var(--bg-mid);
             border-right: 1px solid var(--border);
-            padding: 12px;
-            font-size: 14px;
+            padding: 15px 0;
         }
 
-        .file-item {
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-        }
+        .nav-label { padding: 0 20px 10px; font-size: 11px; text-transform: uppercase; color: var(--text-dim); }
+        .file { padding: 6px 20px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .file:hover { background: var(--bg-light); }
+        .file.active { background: var(--bg-light); border-left: 2px solid var(--accent); }
 
-        .file-item:hover {
-            background: var(--bg-editor);
-            color: var(--text-bright);
-        }
-
-        /* --- Main Editor Space --- */
-        .editor-space {
-            background: var(--bg-editor);
+        /* --- Editor: The Workspace --- */
+        main {
+            grid-area: edit;
+            background: var(--bg-deep);
             display: flex;
             flex-direction: column;
         }
 
-        .tabs {
-            background: var(--bg-sidebar);
-            display: flex;
-            height: 35px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .tab {
-            padding: 0 15px;
-            display: flex;
-            align-items: center;
-            border-right: 1px solid var(--border);
-            font-size: 12px;
-            background: var(--bg-editor);
-        }
-
-        .code-area {
-            flex-grow: 1;
-            padding: 20px;
-            font-family: 'Fira Code', monospace;
-            font-size: 14px;
+        .tab-bar { background: var(--bg-mid); display: flex; height: 35px; border-bottom: 1px solid var(--border); }
+        .tab { padding: 0 20px; display: flex; align-items: center; font-size: 12px; border-right: 1px solid var(--border); }
+        
+        .code-view { 
+            flex: 1; 
+            padding: 25px; 
+            font-family: 'Fira Code', monospace; 
+            font-size: 14px; 
             line-height: 1.6;
             overflow-y: auto;
         }
 
-        /* --- AI Assistant Pane --- */
+        /* --- Terminal: Execution Logs --- */
+        .terminal {
+            grid-area: term;
+            background: black;
+            border-top: 1px solid var(--border);
+            padding: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        /* --- AI Pane: The Collaborative Agent --- */
         .ai-pane {
-            grid-row: 2 / -1;
-            background: var(--bg-sidebar);
+            grid-area: ai;
+            background: var(--bg-mid);
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
         }
 
-        .ai-header {
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        .ai-chat-history {
-            flex-grow: 1;
-            padding: 12px;
-            overflow-y: auto;
-            font-size: 13px;
-        }
-
-        .ai-input-area {
-            padding: 12px;
-            border-top: 1px solid var(--border);
-        }
-
-        /* --- Terminal --- */
-        .terminal {
-            grid-column: 2;
-            background: var(--terminal-bg);
-            border-top: 1px solid var(--border);
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            color: #39ff14; /* Terminal Green */
-            font-size: 13px;
+        .ai-chat { flex: 1; padding: 20px; overflow-y: auto; font-size: 13px; }
+        .ai-msg { background: var(--bg-light); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .ai-input { padding: 20px; border-top: 1px solid var(--border); }
+        textarea { 
+            width: 100%; height: 80px; background: var(--bg-deep); 
+            border: 1px solid var(--border); color: white; border-radius: 8px; 
+            padding: 10px; resize: none;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="font-weight: bold; color: var(--accent);">Nexus IDE</div>
-        <button class="run-btn">▶ Run</button>
-        <div style="color: var(--text-muted); font-size: 12px;">Saved to Cloud</div>
+        <div class="brand">Codely</div>
+        <div class="controls">
+            <button class="btn">Invite</button>
+            <button class="btn btn-run">▶ Run App</button>
+        </div>
     </header>
 
-    <aside class="sidebar">
-        <div style="text-transform: uppercase; font-size: 11px; margin-bottom: 10px; color: var(--text-muted);">Files</div>
-        <div class="file-item">📁 src/</div>
-        <div class="file-item"> &nbsp;&nbsp;📄 main.py</div>
-        <div class="file-item"> &nbsp;&nbsp;📄 api.js</div>
-        <div class="file-item">📄 index.html</div>
-        <div class="file-item">📄 package.json</div>
-    </aside>
+    <nav>
+        <div class="nav-label">Workspace</div>
+        <div class="file">📁 src</div>
+        <div class="file active">📄 App.jsx</div>
+        <div class="file">📄 index.css</div>
+        <div class="file">⚙️ codely.config.js</div>
+    </nav>
 
-    <main class="editor-space">
-        <div class="tabs">
-            <div class="tab">index.html</div>
-            <div class="tab" style="opacity: 0.5;">main.py</div>
+    <main>
+        <div class="tab-bar">
+            <div class="tab" style="background: var(--bg-deep);">App.jsx</div>
         </div>
-        <div class="code-area">
-<span style="color: #ff7b72;">&lt;!DOCTYPE</span> <span style="color: #79c0ff;">html</span><span style="color: #ff7b72;">&gt;</span><br>
-<span style="color: #ff7b72;">&lt;html</span> <span style="color: #79c0ff;">lang</span>=<span style="color: #a5d6ff;">"en"</span><span style="color: #ff7b72;">&gt;</span><br>
-&nbsp;&nbsp;<span style="color: #ff7b72;">&lt;body&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #ff7b72;">&lt;h1&gt;</span>Hello World<span style="color: #ff7b72;">&lt;/h1&gt;</span><br>
-&nbsp;&nbsp;<span style="color: #ff7b72;">&lt;/body&gt;</span><br>
-<span style="color: #ff7b72;">&lt;/html&gt;</span>
+        <div class="code-view">
+            <span style="color: #c678dd;">import</span> React <span style="color: #c678dd;">from</span> <span style="color: #98c379;">'react'</span>;<br><br>
+            <span style="color: #c678dd;">export default function</span> <span style="color: #e5c07b;">App</span>() {<br>
+            &nbsp;&nbsp;<span style="color: #c678dd;">return</span> (<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&lt;<span style="color: #e06c75;">div</span> className="container"&gt;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<span style="color: #e06c75;">h1</span>&gt;Building with Codely AI&lt;/<span style="color: #e06c75;">h1</span>&gt;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&lt;/<span style="color: #e06c75;">div</span>&gt;<br>
+            &nbsp;&nbsp;);<br>
+            }
         </div>
     </main>
 
     <section class="terminal">
-        <div>~/my-app$ npm start</div>
-        <div style="color: white;">> Compiled successfully!</div>
-        <div style="color: white;">> App running at: http://localhost:3000</div>
+        <div style="color: #56b6c2;">codely@cloud:~/project$ npm run dev</div>
+        <div>> VITE v5.0.0 ready in 125ms</div>
+        <div style="color: #98c379;">➜  Local:   http://localhost:5173/</div>
     </section>
 
     <aside class="ai-pane">
-        <div class="ai-header">Nexus AI Agent</div>
-        <div class="ai-chat-history">
-            <div style="background: var(--bg-base); padding: 8px; border-radius: 4px; margin-bottom: 10px;">
-                I've set up your server boilerplate. Would you like me to add a database connection?
+        <div style="padding: 15px; border-bottom: 1px solid var(--border); font-weight: bold;">Codely Intelligence</div>
+        <div class="ai-chat">
+            <div class="ai-msg">
+                <strong>Codely Agent:</strong> I've analyzed your project. I can help you deploy this to production or add a backend database. What's next?
             </div>
         </div>
-        <div class="ai-input-area">
-            <textarea placeholder="Ask AI to build a feature..." style="width: 100%; height: 60px; background: var(--bg-base); border: 1px solid var(--border); color: white; border-radius: 4px; padding: 5px; resize: none;"></textarea>
+        <div class="ai-input">
+            <textarea placeholder="Ask Codely to build a feature..."></textarea>
         </div>
     </aside>
 
