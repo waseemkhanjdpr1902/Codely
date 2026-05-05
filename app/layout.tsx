@@ -1,9 +1,14 @@
-import "./globals.css";
+export const metadata = {
+  title: "Codely AI",
+  description: "Build apps with AI",
+};
 
-    export default function RootLayout({ children }: { children: React.ReactNode }) {
-      return (
-        <html lang="en">
-          <body style={{ margin: 0 }}>{children}</body>
-        </html>
-      );
-    }
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body className="bg-slate-950 text-white">
+        {children}
+      </body>
+    </html>
+  );
+}
