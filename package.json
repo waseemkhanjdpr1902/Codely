@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "firebase": "latest",
+    "@monaco-editor/react": "latest",
+    "lucide-react": "latest"
+  }
+}
