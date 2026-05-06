@@ -1,41 +1,21 @@
 'use client';
 
-import { Folder, File, Plus } from 'lucide-react';
-import { useFileStore, type FileNode } from '@/store/useFileStore';
+import { Folder, File } from 'lucide-react';
 
 export default function FileSidebar() {
-  const { files, currentFile, setCurrentFile } = useFileStore();
-
-  const renderTree = (nodes: FileNode[], level = 0) => {
-    return nodes.map((node) => (
-      <div key={node.id}>
-        <div
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-800 text-sm transition-colors ${
-            currentFile === node.path ? 'bg-zinc-800 text-white' : 'text-zinc-400'
-          }`}
-          style={{ paddingLeft: `${12 + level * 16}px` }}
-          onClick={() => node.type === 'file' && setCurrentFile(node.path, node.content || '')}
-        >
-          {node.type === 'folder' ? <Folder size={16} /> : <File size={16} />}
-          <span>{node.name}</span>
-        </div>
-
-        {node.type === 'folder' && node.children && (
-          <div>{renderTree(node.children, level + 1)}</div>
-        )}
-      </div>
-    ));
-  };
-
   return (
-    <div className="h-full bg-zinc-950 border-r border-zinc-800 flex flex-col">
-      <div className="h-11 border-b border-zinc-800 flex items-center px-4 justify-between text-sm font-medium">
-        <span>EXPLORER</span>
-        <Plus size={18} className="cursor-pointer hover:text-white" />
-      </div>
-
-      <div className="flex-1 overflow-auto p-2 text-sm">
-        {renderTree(files)}
+    <div className="h-full bg-zinc-950 border-r border-zinc-800 p-4">
+      <h3 className="font-medium mb-4">EXPLORER</h3>
+      <div className="space-y-1 text-sm">
+        <div className="flex items-center gap-2 text-white bg-zinc-800 p-2 rounded">
+          📄 index.tsx
+        </div>
+        <div className="flex items-center gap-2 p-2 text-zinc-400 hover:bg-zinc-800 rounded cursor-pointer">
+          📁 app
+        </div>
+        <div className="flex items-center gap-2 p-2 text-zinc-400 hover:bg-zinc-800 rounded cursor-pointer">
+          📄 README.md
+        </div>
       </div>
     </div>
   );
