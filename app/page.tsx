@@ -1,94 +1,60 @@
-"use client";
+// app/page.tsx
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
+import CodeEditor from '@/components/editor/CodeEditor';
+import FileSidebar from '@/components/sidebar/FileSidebar';
 
-export default function Home() {
-  const [preview, setPreview] = useState(
-    "<h1 style='font-family:sans-serif'>Your app preview renders here</h1>"
-  );
-
-  const generate = () => {
-    setPreview(`
-      <div style="padding:40px;font-family:sans-serif">
-        <h1>Generated Demo App</h1>
-        <button style="
-          padding:12px 24px;
-          border:none;
-          border-radius:12px;
-          background:#06b6d4;
-          color:white;
-          cursor:pointer;
-        ">
-          Working Button
-        </button>
-      </div>
-    `);
-  };
+export default function Codely() {
+  const [currentFile, setCurrentFile] = useState('index.tsx');
+  const [fileContent, setFileContent] = useState('// Welcome to Codely\nconsole.log("Hello World!");');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-white/10 sticky top-0 bg-slate-950/80 backdrop-blur z-50">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
-            Codely AI
-          </h1>
+    <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
+      {/* Sidebar */}
+      <FileSidebar 
+        currentFile={currentFile} 
+        onFileSelect={setCurrentFile} 
+      />
 
-          <button className="px-5 py-2 rounded-xl bg-white text-black font-semibold">
-            Login
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        <div className="text-center">
-          <h2 className="text-6xl font-bold leading-tight">
-            Describe your app.
-            <br />
-            <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
-              Codely builds it.
-            </span>
-          </h2>
-
-          <p className="text-slate-400 mt-6 text-lg">
-            Generate SaaS products with AI
-          </p>
-
-          <div className="mt-10 flex gap-3 max-w-4xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-3">
-            <input
-              className="flex-1 bg-transparent outline-none px-4 text-lg"
-              placeholder="Build an ecommerce website..."
-            />
-
-            <button
-              onClick={generate}
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 font-semibold"
-            >
-              Generate App
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="h-14 border-b border-zinc-800 flex items-center px-4 justify-between bg-zinc-900">
+          <div className="flex items-center gap-4">
+            <h1 className="font-semibold text-lg">Codely</h1>
+            <div className="text-sm text-zinc-400">{currentFile}</div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-md text-sm font-medium">
+              Run
+            </button>
+            <button className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-md text-sm">
+              Share
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mt-16">
-          <div className="rounded-3xl border border-white/10 bg-slate-900 p-6 min-h-[500px]">
-            <h3 className="font-semibold mb-5">Generated Code</h3>
-
-            <pre className="text-cyan-300 text-sm">
-{`function Demo(){
-  return <PremiumApp/>
-}`}
-            </pre>
-          </div>
-
-          <div className="rounded-3xl bg-white p-6 text-black min-h-[500px]">
-            <h3 className="font-semibold mb-5">Live Preview</h3>
-
-            <iframe
-              srcDoc={preview}
-              className="w-full h-[420px] rounded-xl border"
-            />
-          </div>
+        {/* Editor */}
+        <div className="flex-1">
+          <CodeEditor 
+            value={fileContent} 
+            onChange={setFileContent}
+            language="typescript"
+          />
         </div>
-      </main>
+      </div>
+
+      {/* Preview / Terminal Area (Right Panel) */}
+      <div className="w-96 border-l border-zinc-800 bg-zinc-900">
+        <div className="h-14 border-b border-zinc-800 flex items-center px-4">
+          Preview
+        </div>
+        <div className="h-full p-4 text-sm text-zinc-400">
+          Preview / Console will appear here
+        </div>
+      </div>
     </div>
   );
 }
