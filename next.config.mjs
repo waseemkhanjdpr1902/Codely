@@ -1,13 +1,18 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // This allows the build to complete even if there are small type errors
+  // Critical: Don't typecheck during build (temporary)
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Don't fail on ESLint errors
   eslint: {
     ignoreDuringBuilds: true,
   },
-};
+  // Ensure API routes are not statically generated
+  output: 'standalone',
+  // Transpile packages if needed
+  transpilePackages: [],
+}
 
-export default nextConfig;
+module.exports = nextConfig
