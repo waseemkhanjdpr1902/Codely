@@ -14,7 +14,16 @@ if (typeof window === 'undefined' && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY) 
   console.log("⚠️ Firebase API key missing - skipping initialization during build");
   // Don't throw error during build
 } 
-
+// TEMPORARY FIX: Skip during build if no Firebase keys
+if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+  export const dynamic = 'force-dynamic';
+  export async function GET() {
+    return new Response("API disabled during build", { status: 200 });
+  }
+  export async function POST() {
+    return new Response("API disabled during build", { status: 200 });
+  }
+}
 // Rest of your existing code...
 export async function POST(request: NextRequest) {
   try {
