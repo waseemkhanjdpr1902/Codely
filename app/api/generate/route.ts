@@ -1,57 +1,19 @@
+import { db } from "@/lib/firebase"; // Your firebase config
+import { collection, addDoc } from "firebase/firestore";
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 
-export async function POST(req) {
+export async function POST(request: Request) {
+  const body = await request.json();
+  
   try {
-    const { prompt } = await req.json();
-
-    if (!prompt) {
-      return NextResponse.json(
-        { error: "Prompt missing" },
-        { status: 400 }
-      );
-    }
-
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    const docRef = await addDoc(collection(db, "projects"), {
+      name: body.name,
+      code: body.code,
+      userId: body.userId,
+      createdAt: new Date()
     });
-
-    const response =
-      await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              `Return JSON:
-{
-"title":"",
-"html":"",
-"css":"",
-"js":""
-}`
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
-
-    const raw =
-      response.choices?.[0]?.message?.content || "{}";
-
-    const parsed = JSON.parse(raw);
-
-    return NextResponse.json({
-      success: true,
-      ...parsed,
-    });
-
-  } catch (err) {
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ id: docRef.id }, { status: 200 });
+  } catch (e) {
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 }
