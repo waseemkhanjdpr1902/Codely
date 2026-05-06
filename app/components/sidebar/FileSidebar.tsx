@@ -1,46 +1,42 @@
 'use client';
 
 import { Folder, File, Plus } from 'lucide-react';
+import { useFileStore, FileNode } from '@/store/useFileStore';
 
-interface FileSidebarProps {
-  currentFile: string;
-  onFileSelect: (file: string) => void;
-}
+export default function FileSidebar() {
+  const { files, currentFile, setCurrentFile } = useFileStore();
 
-const sampleFiles = [
-  { name: 'index.tsx', type: 'file' },
-  { name: 'app.css', type: 'file' },
-  { name: 'components', type: 'folder' },
-  { name: 'utils.ts', type: 'file' },
-];
+  const renderTree = (nodes: FileNode[]) => {
+    return nodes.map((node) => (
+      <div key={node.id}>
+        <div
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-800 transition-colors text-sm
+            ${currentFile === node.path ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
+          onClick={() => node.type === 'file' && setCurrentFile(node.path, node.content || '')}
+        >
+          {node.type === 'folder' ? <Folder size={16} /> : <File size={16} />}
+          <span>{node.name}</span>
+        </div>
+        
+        {/* Render children if folder */}
+        {node.type === 'folder' && node.children && (
+          <div className="pl-6">
+            {renderTree(node.children)}
+          </div>
+        )}
+      </div>
+    ));
+  };
 
-export default function FileSidebar({ currentFile, onFileSelect }: FileSidebarProps) {
   return (
     <div className="h-full bg-zinc-950 border-r border-zinc-800 flex flex-col">
-      {/* Sidebar Header */}
-      <div className="h-11 border-b border-zinc-800 flex items-center px-4 justify-between text-sm">
-        <span className="font-medium">EXPLORER</span>
-        <Plus size={16} className="cursor-pointer hover:text-white" />
+      <div className="h-11 border-b border-zinc-800 flex items-center px-4 justify-between text-sm font-medium">
+        <span>EXPLORER</span>
+        <Plus size={18} className="cursor-pointer hover:text-white" />
       </div>
 
-      {/* File Tree */}
       <div className="flex-1 overflow-auto p-2 text-sm">
-        {sampleFiles.map((item, index) => (
-          <div
-            key={index}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-800 transition-colors ${
-              currentFile === item.name ? 'bg-zinc-800 text-white' : 'text-zinc-400'
-            }`}
-            onClick={() => item.type === 'file' && onFileSelect(item.name)}
-          >
-            {item.type === 'folder' ? (
-              <Folder size={16} />
-            ) : (
-              <File size={16} />
-            )}
-            <span>{item.name}</span>
-          </div>
-        ))}
+        {renderTree(files)}
       </div>
     </div>
   );
