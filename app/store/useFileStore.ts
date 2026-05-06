@@ -18,7 +18,7 @@ type FileStore = {
   updateFileContent: (path: string, content: string) => void;
 };
 
-export const useFileStore = create<FileStore>((set, get) => ({
+export const useFileStore = create<FileStore>((set) => ({
   files: [
     {
       id: '1',
@@ -37,7 +37,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
           id: '3', 
           name: 'globals.css', 
           type: 'file', 
-          content: '/* Global styles */', 
+          content: 'body { color: white; }', 
           path: 'app/globals.css' 
         },
       ]
@@ -46,7 +46,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
       id: '4', 
       name: 'README.md', 
       type: 'file', 
-      content: '# Codely\n\nYour powerful online IDE', 
+      content: '# Codely\n\nNext-Gen Online IDE', 
       path: 'README.md' 
     },
   ],
@@ -65,14 +65,9 @@ export const useFileStore = create<FileStore>((set, get) => ({
 
 function updateContentInTree(tree: FileNode[], path: string, content: string): FileNode[] {
   return tree.map(node => {
-    if (node.path === path) {
-      return { ...node, content };
-    }
+    if (node.path === path) return { ...node, content };
     if (node.children) {
-      return { 
-        ...node, 
-        children: updateContentInTree(node.children, path, content) 
-      };
+      return { ...node, children: updateContentInTree(node.children, path, content) };
     }
     return node;
   });
