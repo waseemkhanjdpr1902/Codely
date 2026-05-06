@@ -6,23 +6,21 @@ import { useFileStore, FileNode } from '@/store/useFileStore';
 export default function FileSidebar() {
   const { files, currentFile, setCurrentFile } = useFileStore();
 
-  const renderTree = (nodes: FileNode[]) => {
+  const renderTree = (nodes: FileNode[], level = 0) => {
     return nodes.map((node) => (
       <div key={node.id}>
         <div
           className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-800 transition-colors text-sm
             ${currentFile === node.path ? 'bg-zinc-800 text-white' : 'text-zinc-400'}`}
+          style={{ paddingLeft: `${12 + level * 12}px` }}
           onClick={() => node.type === 'file' && setCurrentFile(node.path, node.content || '')}
         >
           {node.type === 'folder' ? <Folder size={16} /> : <File size={16} />}
           <span>{node.name}</span>
         </div>
-        
-        {/* Render children if folder */}
+
         {node.type === 'folder' && node.children && (
-          <div className="pl-6">
-            {renderTree(node.children)}
-          </div>
+          <div>{renderTree(node.children, level + 1)}</div>
         )}
       </div>
     ));
