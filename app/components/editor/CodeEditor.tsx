@@ -26,10 +26,7 @@ export default function CodeEditor({
         wordWrap: 'on',
         automaticLayout: true,
         scrollBeyondLastLine: false,
-        padding: { top: 16, bottom: 16 },
-        lineNumbers: 'on',
-        roundedSelection: false,
-        scrollPredominantAxis: 'vertical',
+        padding: { top: 16 },
       }}
     />
   );
