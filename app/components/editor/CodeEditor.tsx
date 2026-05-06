@@ -1,7 +1,6 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useTheme } from 'next-themes';
 
 interface CodeEditorProps {
   value: string;
@@ -9,23 +8,28 @@ interface CodeEditorProps {
   language?: string;
 }
 
-export default function CodeEditor({ value, onChange, language = 'typescript' }: CodeEditorProps) {
-  const { theme } = useTheme();
-
+export default function CodeEditor({ 
+  value, 
+  onChange, 
+  language = 'typescript' 
+}: CodeEditorProps) {
   return (
     <Editor
       height="100%"
       language={language}
       value={value}
       onChange={onChange}
-      theme={theme === 'dark' ? 'vs-dark' : 'light'}
+      theme="vs-dark"
       options={{
         minimap: { enabled: true },
         fontSize: 14,
         wordWrap: 'on',
         automaticLayout: true,
         scrollBeyondLastLine: false,
-        padding: { top: 16 },
+        padding: { top: 16, bottom: 16 },
+        lineNumbers: 'on',
+        roundedSelection: false,
+        scrollPredominantAxis: 'vertical',
       }}
     />
   );
