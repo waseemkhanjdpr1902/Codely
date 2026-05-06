@@ -1,63 +1,107 @@
 'use client';
+import { useState } from 'react';
 
-import CodeEditor from './components/editor/CodeEditor';
-import FileSidebar from './components/sidebar/FileSidebar';
+export default function Home() {
+  const [code, setCode] = useState(`// Try running this code
+console.log("Hello from your code editor!");
+console.log("2 + 2 =", 2 + 2);
 
-export default function Codely() {
+// Try a function
+const greet = (name) => "Hello, " + name + "!";
+console.log(greet("Developer"));
+
+// Even arrays work
+console.log([1, 2, 3].map(x => x * 2));
+`);
+  const [output, setOutput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const runCode = async () => {
+    setLoading(true);
+    setOutput('Running...');
+    
+    try {
+      const response = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      
+      const data = await response.json();
+      setOutput(data.output || 'No output');
+    } catch (error: any) {
+      setOutput(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-zinc-950 text-white overflow-hidden flex-col">
-      {/* Top Navigation Bar */}
-      <div className="h-14 border-b border-zinc-800 bg-zinc-900 flex items-center px-4 z-10">
-        <h1 className="font-bold text-2xl tracking-tight">Codely</h1>
-        <div className="ml-4 text-sm text-zinc-400">• My Awesome Project</div>
-
-        <div className="ml-auto flex items-center gap-3">
-          <button className="px-6 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium">
-            ▶ Run
-          </button>
-          <button className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm">
-            Share
-          </button>
-        </div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#1e1e1e', color: '#fff' }}>
+      {/* Toolbar */}
+      <div style={{ padding: '10px', backgroundColor: '#2d2d2d', borderBottom: '1px solid #3d3d3d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontFamily: 'monospace' }}>✧ Code Editor</span>
+        <button 
+          onClick={runCode}
+          disabled={loading}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: loading ? '#555' : '#0e639c',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: 'monospace'
+          }}
+        >
+          {loading ? '⏳ Running...' : '▶ Run Code'}
+        </button>
       </div>
-
-      {/* Main Area - Simple Flex Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        
-        {/* Left Sidebar */}
-        <div className="w-72 border-r border-zinc-800 bg-zinc-950 flex flex-col">
-          <FileSidebar />
-        </div>
-
-        {/* Code Editor */}
-        <div className="flex-1 flex flex-col">
-          <CodeEditor 
-            value="// Welcome to Codely\n\nconsole.log('Hello, World!');\n\n// Start building something amazing!" 
-            onChange={() => {}} 
+      
+      {/* Editor and Output */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* Editor */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid #3d3d3d' }}>
+          <div style={{ padding: '5px 10px', backgroundColor: '#2d2d2d', fontSize: '12px', fontFamily: 'monospace' }}>
+            Editor
+          </div>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            style={{
+              flex: 1,
+              backgroundColor: '#1e1e1e',
+              color: '#d4d4d4',
+              border: 'none',
+              padding: '10px',
+              fontFamily: 'Monaco, "Courier New", monospace',
+              fontSize: '14px',
+              resize: 'none',
+              outline: 'none'
+            }}
+            spellCheck={false}
           />
         </div>
-
-        {/* Right Panel */}
-        <div className="w-80 border-l border-zinc-800 bg-zinc-900 flex flex-col">
-          <div className="h-12 border-b border-zinc-800 flex items-center px-4 text-sm font-medium">
-            Preview
+        
+        {/* Output */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '5px 10px', backgroundColor: '#2d2d2d', fontSize: '12px', fontFamily: 'monospace' }}>
+            Output
           </div>
-          <div className="flex-1 flex items-center justify-center text-zinc-500 p-8 text-center">
-            <div>
-              <div className="text-5xl mb-4">🖥️</div>
-              <p>Live Preview</p>
-              <p className="text-xs mt-2">Will be available soon</p>
-            </div>
-          </div>
-
-          <div className="h-12 border-t border-zinc-800 flex items-center px-4 text-sm font-medium bg-zinc-950">
-            Console
-          </div>
-          <div className="flex-1 p-4 font-mono text-sm text-emerald-400 overflow-auto bg-black/30">
-            Console output will appear here...
-          </div>
+          <pre style={{
+            flex: 1,
+            margin: 0,
+            padding: '10px',
+            backgroundColor: '#1e1e1e',
+            color: '#4ec9b0',
+            fontFamily: 'Monaco, "Courier New", monospace',
+            fontSize: '14px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {output || 'Click "Run Code" to see output here'}
+          </pre>
         </div>
-
       </div>
     </div>
   );
