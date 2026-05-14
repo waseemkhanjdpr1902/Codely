@@ -1,47 +1,48 @@
 'use client';
 
 import * as React from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 const ResizablePanelGroup = React.forwardRef<
-  React.ElementRef<typeof PanelGroup>,
-  React.ComponentPropsWithoutRef<typeof PanelGroup>
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    direction?: "horizontal" | "vertical";
+  }
 >(({ className, ...props }, ref) => (
-  <PanelGroup
+  <div
     ref={ref}
-    className={className}
+    className={`flex h-full w-full ${props.direction === "vertical" ? "flex-col" : "flex-row"} ${className || ""}`}
     {...props}
   />
 ));
 ResizablePanelGroup.displayName = "ResizablePanelGroup";
 
 const ResizablePanel = React.forwardRef<
-  React.ElementRef<typeof Panel>,
-  React.ComponentPropsWithoutRef<typeof Panel>
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <Panel
+  <div
     ref={ref}
-    className={className}
+    className={`min-h-0 min-w-0 flex-1 ${className || ""}`}
     {...props}
   />
 ));
 ResizablePanel.displayName = "ResizablePanel";
 
 const ResizableHandle = React.forwardRef<
-  React.ElementRef<typeof PanelResizeHandle>,
-  React.ComponentPropsWithoutRef<typeof PanelResizeHandle> & {
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
     withHandle?: boolean;
   }
 >(({ className, withHandle, ...props }, ref) => (
-  <PanelResizeHandle
+  <div
     ref={ref}
-    className={`relative flex w-1.5 items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors ${className}`}
+    className={`relative flex w-1.5 shrink-0 items-center justify-center bg-zinc-800 transition-colors hover:bg-zinc-700 ${className || ""}`}
     {...props}
   >
     {withHandle && (
       <div className="h-8 w-1 rounded-full bg-zinc-600" />
     )}
-  </PanelResizeHandle>
+  </div>
 ));
 ResizableHandle.displayName = "ResizableHandle";
 

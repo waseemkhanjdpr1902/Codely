@@ -1,6 +1,6 @@
 'use client';
 
-import { Folder, File } from 'lucide-react';
+import { File, Folder } from 'lucide-react';
 
 export default function FileSidebar() {
   return (
@@ -8,13 +8,13 @@ export default function FileSidebar() {
       <h3 className="font-medium mb-4">EXPLORER</h3>
       <div className="space-y-1 text-sm">
         <div className="flex items-center gap-2 text-white bg-zinc-800 p-2 rounded">
-          📄 index.tsx
+          <File size={16} /> index.tsx
         </div>
         <div className="flex items-center gap-2 p-2 text-zinc-400 hover:bg-zinc-800 rounded cursor-pointer">
-          📁 app
+          <Folder size={16} /> app
         </div>
         <div className="flex items-center gap-2 p-2 text-zinc-400 hover:bg-zinc-800 rounded cursor-pointer">
-          📄 README.md
+          <File size={16} /> README.md
         </div>
       </div>
     </div>
