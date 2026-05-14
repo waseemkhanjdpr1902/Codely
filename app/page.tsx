@@ -1,6 +1,6 @@
 export default function Home() {
   return (
-    <main>
+    <main style={{ padding: 40 }}>
       <h1>Codely Working</h1>
     </main>
   );
