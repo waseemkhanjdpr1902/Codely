@@ -12,7 +12,26 @@ The app is not nested inside another folder. The `app` directory and `package.js
 
 ## vercel.json
 
-No `vercel.json` exists in the repo root, so there are no custom Vercel routes, builds, framework settings, or output directory overrides to remove.
+The repo originally had no `vercel.json`.
+
+After inspecting the Vercel project, the project settings were found to be wrong:
+
+- Framework Preset: `Other`
+- Output Directory: ``public` if it exists, or `.``
+
+That made Vercel run `npm run build` successfully but serve the wrong output. A minimal `vercel.json` was added to override those project settings for this repo:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": null
+}
+```
+
+There are no custom `routes`, `builds`, rewrites, or static export settings.
 
 ## next.config
 
@@ -52,5 +71,6 @@ Build passed successfully. The Next.js route table includes:
 - Install Command: `npm install`
 - Build Command: `npm run build`
 - Output Directory: empty
+- Deployment Protection: disabled for the production site if the homepage must be publicly visible
 
 If Vercel is configured with a Root Directory value like `Codely`, `app`, `src`, `js`, or any older nested path, clear it. If Vercel is configured to deploy a branch other than `servicesetu`, change the production branch to `servicesetu` or merge this branch into the configured production branch.
