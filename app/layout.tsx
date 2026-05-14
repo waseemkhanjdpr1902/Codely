@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Codely AI",
-  description: "Build full stack apps with AI",
+  title: "Codely",
+  description: "AI app builder",
 };
 
 export default function RootLayout({

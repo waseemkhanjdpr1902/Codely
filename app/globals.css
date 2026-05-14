@@ -1,25 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+* {
+  box-sizing: border-box;
+}
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background: #020617;
-  color: white;
-  font-family: Inter, system-ui, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-button {
-  cursor: pointer;
-  transition: all .25s ease;
-}
-
-button:hover {
-  transform: translateY(-2px);
+  background: #ffffff;
+  color: #111111;
 }
