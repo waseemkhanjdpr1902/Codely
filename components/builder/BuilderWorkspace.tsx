@@ -136,6 +136,7 @@ export default function BuilderWorkspace() {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [developerDetails, setDeveloperDetails] = useState('');
   const [toast, setToast] = useState('');
   const [showDeployGuide, setShowDeployGuide] = useState(false);
   const [usage, setUsage] = useState(getUsage);
@@ -166,6 +167,7 @@ export default function BuilderWorkspace() {
     setActiveCategory(category);
     setActiveMode(category.mode);
     setError('');
+    setDeveloperDetails('');
 
     if (category.mode === 'app' || category.mode === 'prompt-app') {
       setAppIdea(category.examplePrompt);
@@ -192,6 +194,7 @@ export default function BuilderWorkspace() {
 
     setLoading(true);
     setError('');
+    setDeveloperDetails('');
 
     try {
       const response = await fetch('/api/generate', {
@@ -199,13 +202,19 @@ export default function BuilderWorkspace() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({
+        success: false,
+        message: 'Generation endpoint did not return JSON.',
+      }));
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || data.output || 'Generation failed.');
+        setError('AI generation is not configured correctly. Please check API keys in Vercel.');
+        setDeveloperDetails(formatDeveloperDetails(data, response.status));
+        showToast('Generation failed');
+        return;
       }
 
-      const nextFiles = normalizeFiles(data.files || data.app?.files || []);
+      const nextFiles = normalizeFiles(data.output?.files || data.files || data.app?.files || []);
       const nextResult = normalizeResult(data, nextFiles);
       setResult(nextResult);
       setSelectedPath(nextFiles[0]?.path || 'README.md');
@@ -216,7 +225,8 @@ export default function BuilderWorkspace() {
       setUsage(nextUsage);
       showToast('Generated successfully');
     } catch (generationError: any) {
-      setError(generationError?.message || 'Codely could not generate the result.');
+      setError('AI generation is not configured correctly. Please check API keys in Vercel.');
+      setDeveloperDetails(generationError?.message || 'Unknown browser-side generation error.');
       showToast('Generation failed');
     } finally {
       setLoading(false);
@@ -374,6 +384,7 @@ export default function BuilderWorkspace() {
                 onClick={() => {
                   setActiveMode(mode);
                   setError('');
+                  setDeveloperDetails('');
                 }}
                 className={`h-9 rounded-lg border px-3 text-sm font-semibold transition ${
                   activeMode === mode ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
@@ -479,6 +490,14 @@ export default function BuilderWorkspace() {
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                 <div>
                   <p className="font-semibold">{error}</p>
+                  {developerDetails && (
+                    <details className="mt-3 rounded-lg border border-red-100 bg-white p-3 text-slate-700">
+                      <summary className="cursor-pointer text-sm font-semibold text-slate-900">Developer details</summary>
+                      <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap text-xs leading-5">
+                        {developerDetails}
+                      </pre>
+                    </details>
+                  )}
                   <Button onClick={runGeneration} variant="secondary" className="mt-3 h-9">
                     Retry
                   </Button>
@@ -626,6 +645,27 @@ function CodeInput({ value, onChange, label }: { value: string; onChange: (value
 }
 
 function normalizeResult(data: any, files: GeneratedFile[]): GenerationResult {
+  if (data.output && typeof data.output === 'object') {
+    const output = data.output;
+    const outputLines = [
+      `Plan: ${output.plan || 'Generated a practical plan for your request.'}`,
+      '',
+      `Pages:\n${formatList(output.pages)}`,
+      '',
+      `Features:\n${formatList(output.features)}`,
+      '',
+      output.readme ? `Readme:\n${output.readme}` : 'Generated code is available in the code panel.',
+    ];
+
+    return {
+      title: data.title || 'Codely generation',
+      summary: output.plan || data.summary || 'Generated a useful result.',
+      output: outputLines.join('\n'),
+      files,
+      provider: data.provider,
+    };
+  }
+
   const app = data.app;
   if (app) {
     const planLines = [
@@ -674,4 +714,20 @@ function formatList(value: string[] | string | undefined) {
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function formatDeveloperDetails(data: any, status: number) {
+  const lines = [`HTTP status: ${status}`];
+
+  if (data?.message) lines.push(`Message: ${data.message}`);
+  if (data?.error) lines.push(`Error: ${data.error}`);
+
+  if (Array.isArray(data?.details)) {
+    lines.push('Provider details:');
+    data.details.forEach((detail: any) => {
+      lines.push(`- ${detail.provider || 'unknown'}${detail.status ? ` (${detail.status})` : ''}: ${detail.reason || 'No reason provided.'}`);
+    });
+  }
+
+  return lines.join('\n');
 }
