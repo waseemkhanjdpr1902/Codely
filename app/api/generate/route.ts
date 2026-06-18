@@ -18,6 +18,8 @@ type GenerateBody = {
   features?: string;
   designStyle?: string;
   errorMessage?: string;
+  template?: string;
+  techStack?: string[];
 };
 
 type ProviderDetail = {
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     const normalized = normalizeAiOutput(result.output, body);
+    const techStack = body.techStack?.length ? body.techStack : ['Next.js', 'React', 'TypeScript', 'Tailwind'];
 
     return NextResponse.json({
       success: true,
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
               plan: normalized.plan,
               pages: normalized.pages,
               components: normalized.features,
-              techStack: ['Next.js App Router', 'React', 'Tailwind CSS'],
+              techStack,
               files: normalized.files,
             }
           : undefined,
@@ -156,6 +159,8 @@ function createGenerationRequest(body: GenerateBody) {
     'Return only JSON with this exact shape:',
     '{"plan":"","pages":[],"features":[],"code":"","readme":"","files":[{"path":"","content":""}]}',
     'All array items must be strings. files must contain safe relative paths and complete file contents.',
+    'Return a complete Next.js TypeScript project. Do not return static HTML only. Do not return README only.',
+    'Required file paths include app/page.tsx, components/AppShell.tsx, lib/utils.ts, hooks/use-project.ts, public/.gitkeep, styles/globals.css, package.json, README.md, and .env.example.',
   ].join('\n');
 
   const system = [
@@ -169,6 +174,8 @@ function createGenerationRequest(body: GenerateBody) {
   const user = [
     `Mode: ${mode}`,
     `Category: ${body.category || getTitle(body)}`,
+    body.template ? `Template: ${body.template}` : '',
+    body.techStack?.length ? `Selected tech stack: ${body.techStack.join(', ')}` : '',
     body.prompt ? `Prompt: ${body.prompt}` : '',
     body.targetUsers ? `Target users: ${body.targetUsers}` : '',
     body.features ? `Features needed: ${body.features}` : '',
@@ -185,11 +192,11 @@ function createGenerationRequest(body: GenerateBody) {
 
 function getModeInstructions(mode: GenerateMode) {
   if (mode === 'app') {
-    return 'Create an app plan, pages, core features, starter code, README, and files for a small Next.js app.';
+    return 'Create a complete Next.js TypeScript project with App Router files, reusable components, package.json, README, and .env.example.';
   }
 
   if (mode === 'code') {
-    return 'Generate working code for the requested tool or component. Include a short plan and README.';
+    return 'Generate a complete Next.js TypeScript project for the requested tool or component. Include App Router files, package.json, README, and .env.example.';
   }
 
   if (mode === 'error') {
@@ -201,7 +208,7 @@ function getModeInstructions(mode: GenerateMode) {
   }
 
   if (mode === 'prompt-app') {
-    return 'Turn the plain English idea into a step-by-step MVP plan and starter code.';
+    return 'Turn the plain English idea into a step-by-step MVP plan and complete Next.js TypeScript starter project.';
   }
 
   return 'Generate a useful result for the request.';
@@ -425,12 +432,24 @@ function parseProviderOutput(raw: string): CodelyOutput {
 }
 
 function normalizeAiOutput(output: CodelyOutput, body: GenerateBody): CodelyOutput {
-  if (output.files.length > 0) return output;
+  if (output.files.length > 0) {
+    return {
+      ...output,
+      files: ensureRequiredProjectFiles(output.files, output.code, output.readme, body.mode),
+    };
+  }
 
   return {
     ...output,
     files: normalizeFiles([], output.code, output.readme || createReadme(output.plan, output.pages, output.features), body.mode),
   };
+}
+
+function ensureRequiredProjectFiles(files: GeneratedFile[], code = '', readme = '', mode: GenerateMode = 'app') {
+  const requiredFiles = normalizeFiles([], code, readme, mode);
+  const existingPaths = new Set(files.map((file) => file.path));
+  const missingFiles = requiredFiles.filter((file) => !existingPaths.has(file.path));
+  return [...files, ...missingFiles].slice(0, 24);
 }
 
 function normalizeFiles(value: unknown, code = '', readme = '', mode: GenerateMode = 'app'): GeneratedFile[] {
@@ -447,16 +466,87 @@ function normalizeFiles(value: unknown, code = '', readme = '', mode: GenerateMo
 
   if (files.length > 0) return files;
 
-  const codePath = mode === 'code' ? 'index.html' : mode === 'error' ? 'fixed-code.txt' : mode === 'ui' ? 'improved-ui.tsx' : 'app/page.tsx';
-
   return [
     {
-      path: codePath,
-      content: code || '// Codely generated code will appear here.',
+      path: 'app/page.tsx',
+      content:
+        code ||
+        `import AppShell from "@/components/AppShell";
+
+export default function Page() {
+  return <AppShell />;
+}
+`,
+    },
+    {
+      path: 'components/AppShell.tsx',
+      content: `export default function AppShell() {
+  return (
+    <main className="min-h-screen bg-slate-50 p-8 text-slate-950">
+      <section className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm">
+        <p className="text-sm font-semibold text-blue-600">Generated by Codely</p>
+        <h1 className="mt-3 text-3xl font-bold">Your app is ready to customize</h1>
+        <p className="mt-3 text-slate-600">Use this starter project as the first version of your idea.</p>
+      </section>
+    </main>
+  );
+}
+`,
+    },
+    {
+      path: 'lib/utils.ts',
+      content: `export function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+`,
+    },
+    {
+      path: 'hooks/use-project.ts',
+      content: `export function useProject() {
+  return {
+    status: "ready",
+  };
+}
+`,
+    },
+    {
+      path: 'public/.gitkeep',
+      content: '',
+    },
+    {
+      path: 'styles/globals.css',
+      content: '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n',
+    },
+    {
+      path: 'package.json',
+      content: JSON.stringify(
+        {
+          scripts: {
+            dev: 'next dev',
+            build: 'next build',
+            start: 'next start',
+          },
+          dependencies: {
+            next: 'latest',
+            react: 'latest',
+            'react-dom': 'latest',
+          },
+          devDependencies: {
+            typescript: 'latest',
+            tailwindcss: 'latest',
+          },
+        },
+        null,
+        2
+      ),
     },
     {
       path: 'README.md',
-      content: readme || '# Codely generated project\n\nGenerated notes will appear here.',
+      content: readme || '# Codely generated project\n\nRun `npm install` and `npm run dev` to start.\n',
+    },
+    {
+      path: '.env.example',
+      content: 'NEXT_PUBLIC_APP_URL=\n',
     },
   ];
 }
