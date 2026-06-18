@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Clipboard, Code2, Download, FileText, Fold
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { GeneratedFile, downloadTextFile, recordUsage, saveProject } from '@/lib/local-workspace';
+import { GeneratedFile, recordUsage, saveProject } from '@/lib/local-workspace';
 
 type ProjectType = 'Website' | 'Mobile App' | 'SaaS Tool' | 'Calculator' | 'Dashboard' | 'Form' | 'AI Tool' | 'Custom';
 type OutputTab = 'Preview' | 'Files' | 'Code' | 'Run & Deploy';
@@ -159,14 +159,23 @@ export default function BuilderWorkspace() {
     showToast('Code copied');
   }
 
-  function downloadProject() {
-    const payload = {
-      summary: result?.summary || 'Codely project',
-      projectType: result?.projectType || 'nextjs',
-      files,
-      runCommands: result?.runCommands || ['npm install', 'npm run dev'],
-    };
-    downloadTextFile('codely-project.json', JSON.stringify(payload, null, 2), 'application/json');
+  async function downloadProject() {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+
+    files.forEach((file) => {
+      zip.file(file.path, file.content);
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${slugify(projectType)}-codely-app.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
     showToast('Project downloaded');
   }
 
@@ -501,6 +510,10 @@ function matchProjectType(value: string): ProjectType {
   if (normalized.includes('ai')) return 'AI Tool';
   if (normalized.includes('website')) return 'Website';
   return 'Custom';
+}
+
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'codely';
 }
 
 function formatDeveloperDetails(data: any, status: number) {
