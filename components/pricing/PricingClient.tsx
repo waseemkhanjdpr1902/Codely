@@ -23,7 +23,7 @@ const plans: Plan[] = [
     period: '',
     amount: 0,
     description: 'For trying Codely and building small tools.',
-    features: ['5 AI generations/month', 'Basic tools', 'Copy code', 'Local storage projects'],
+    features: ['Unlimited testing generations', 'Basic tools', 'Copy code', 'Local storage projects'],
   },
   {
     name: 'Starter',
@@ -31,7 +31,7 @@ const plans: Plan[] = [
     period: '/month',
     amount: 49900,
     description: 'For students, freelancers, and small business owners.',
-    features: ['100 AI generations/month', 'Save projects', 'Export code', 'Error fixer', 'UI enhancer'],
+    features: ['Open testing generations', 'Save projects', 'Export code', 'Error fixer', 'UI enhancer'],
   },
   {
     name: 'Pro',
@@ -61,7 +61,7 @@ export default function PricingClient() {
 
     if (plan.name === 'Free') {
       setPlan('Free');
-      setMessage('Free plan is active. You have 5 generations this month.');
+      setMessage('Free testing access is active. Generation limits are open while you test Codely.');
       return;
     }
 

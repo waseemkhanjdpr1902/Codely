@@ -24,7 +24,6 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import {
   GeneratedFile,
-  canGenerate,
   downloadTextFile,
   getRemainingGenerations,
   getUsage,
@@ -197,11 +196,6 @@ export default function BuilderWorkspace() {
   const envExample = files.find((file) => file.path === '.env.example')?.content || 'NEXT_PUBLIC_APP_URL=\n';
 
   async function generateProject() {
-    if (!canGenerate(usage)) {
-      setError('You have 0 generations left this month. Upgrade to continue building.');
-      return;
-    }
-
     if (!idea.trim()) {
       setError('Describe what you want to build first.');
       return;

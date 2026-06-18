@@ -32,8 +32,8 @@ const USAGE_KEY = 'codely.usage.v1';
 const PLAN_KEY = 'codely.plan.v1';
 
 const planLimits: Record<PlanName, number> = {
-  Free: 5,
-  Starter: 100,
+  Free: Number.POSITIVE_INFINITY,
+  Starter: Number.POSITIVE_INFINITY,
   Pro: Number.POSITIVE_INFINITY,
   Lifetime: Number.POSITIVE_INFINITY,
 };
@@ -109,8 +109,8 @@ export function getRemainingGenerations(usage = getUsage()) {
   return Math.max(0, limit - usage.aiGenerations);
 }
 
-export function canGenerate(usage = getUsage()) {
-  return getRemainingGenerations(usage) > 0;
+export function canGenerate() {
+  return true;
 }
 
 export function recordUsage(kind: 'aiGenerations' | 'errorFixes' | 'uiImprovements' | 'exports') {
