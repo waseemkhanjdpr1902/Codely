@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  ArrowLeft,
   Bot,
   Briefcase,
   Calculator,
@@ -121,51 +122,87 @@ const templates = [
 ];
 
 export default function LandingPage() {
+  const quickModes = buildModes.slice(0, 6);
+
   return (
-    <main className="min-h-screen bg-white text-slate-950">
+    <main className="min-h-screen bg-[#fffaf5] text-slate-950">
       <Header />
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-[520px] bg-gradient-to-br from-blue-50 via-cyan-50 to-white" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,200,0.42),transparent_34%),linear-gradient(180deg,#fffaf5_0%,#fff7f1_48%,#ffffff_100%)]" />
+        <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white/80 px-4 py-2 text-sm font-semibold text-orange-700 shadow-sm">
               <Sparkles size={16} />
-              AI app builder for non-coders
+              Codely Agent for simple app building
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
-              What do you want to build?
+            <h1 className="text-5xl font-semibold tracking-[-0.05em] text-[#33343a] sm:text-7xl">
+              What will you build?
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              Turn ideas into websites, apps and tools without coding.
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+              Turn ideas into apps in minutes — no coding needed.
             </p>
 
-            <Card className="mx-auto mt-9 max-w-4xl p-3 text-left">
-              <form action="/builder" method="get" className="flex flex-col gap-3 lg:flex-row">
+            <div className="mx-auto mt-8 max-w-3xl rounded-[28px] border border-slate-200/80 bg-white p-3 text-left shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+              <form action="/builder" method="get" className="flex items-center gap-3">
                 <label className="sr-only" htmlFor="homepage-prompt">
                   Describe what you want to build
                 </label>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl text-slate-500">+</span>
                 <textarea
                   id="homepage-prompt"
                   name="prompt"
-                  className="min-h-32 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 p-5 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
-                  placeholder="Create a CRM for small businesses"
+                  rows={2}
+                  className="min-h-16 flex-1 resize-none border-0 bg-transparent px-1 py-3 text-base outline-none placeholder:text-slate-500"
+                  placeholder="Create a CRM for small businesses..."
                 />
                 <input type="hidden" name="category" value="custom-project" />
-                <Button type="submit" className="h-14 px-8 text-base lg:h-auto">
-                  Generate
+                <button
+                  type="submit"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ff8f86] text-white shadow-sm transition hover:bg-[#ff776d]"
+                  aria-label="Generate project"
+                >
                   <ArrowRight size={18} />
-                </Button>
+                </button>
               </form>
-            </Card>
+            </div>
 
-            <div className="mx-auto mt-5 flex max-w-4xl flex-wrap justify-center gap-2">
+            <div className="mx-auto mt-5 grid max-w-xl grid-cols-[32px_1fr_32px] items-center gap-3">
+              <Button href="/builder" variant="ghost" className="h-8 w-8 rounded-full p-0 text-slate-400" aria-label="Previous build modes">
+                <ArrowLeft size={16} />
+              </Button>
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                {quickModes.map((mode) => {
+                  const Icon = mode.icon;
+                  return (
+                    <Button
+                      key={mode.title}
+                      href={`/builder?category=${mode.slug}`}
+                      variant="ghost"
+                      className="h-auto flex-col gap-2 rounded-2xl px-2 py-2 text-slate-600 hover:bg-white"
+                    >
+                      <span className="grid h-12 w-12 place-items-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <Icon size={18} />
+                      </span>
+                      <span className="text-xs font-semibold">{mode.title.replace(' Builder', '')}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button href="/builder" variant="ghost" className="h-8 w-8 rounded-full p-0 text-slate-400" aria-label="More build modes">
+                <ArrowRight size={16} />
+              </Button>
+            </div>
+
+            <p className="mt-5 text-xs font-semibold text-slate-400">Try an example prompt</p>
+
+            <div className="mx-auto mt-3 flex max-w-4xl flex-wrap justify-center gap-2">
               {examples.map((example) => (
                 <Button
                   key={example}
                   href={`/builder?prompt=${encodeURIComponent(example)}`}
                   variant="secondary"
-                  className="h-9 rounded-full px-3 text-xs"
+                  className="h-9 rounded-lg border-slate-200 bg-white/90 px-3 text-xs text-slate-600 shadow-sm"
                 >
                   {example}
                 </Button>
