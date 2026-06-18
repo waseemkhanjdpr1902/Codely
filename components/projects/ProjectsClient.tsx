@@ -1,19 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Download, Edit3, FolderPlus, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { CodelyProject, deleteProject, downloadTextFile, formatDate, getProjects, renameProject } from '@/lib/local-workspace';
 
 export default function ProjectsClient() {
-  const [projects, setProjects] = useState<CodelyProject[]>([]);
+  const [projects, setProjects] = useState<CodelyProject[]>(() => getProjects());
   const [activeProject, setActiveProject] = useState<CodelyProject | null>(null);
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    refreshProjects();
-  }, []);
 
   function refreshProjects() {
     setProjects(getProjects());

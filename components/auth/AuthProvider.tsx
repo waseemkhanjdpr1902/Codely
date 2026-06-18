@@ -38,16 +38,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const firebaseConfigured = Boolean(auth);
-  const [user, setUser] = useState<CodelyUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<CodelyUser | null>(() => readLocalUser());
+  const [loading, setLoading] = useState(Boolean(auth));
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const localUser = readLocalUser();
-    if (localUser) setUser(localUser);
-
     if (!auth) {
-      setLoading(false);
       return;
     }
 

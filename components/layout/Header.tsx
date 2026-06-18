@@ -18,9 +18,9 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-          <a href="/#features" className="hover:text-slate-950">
+          <Link href="/#features" className="hover:text-slate-950">
             Tools
-          </a>
+          </Link>
           <Link href="/pricing" className="hover:text-slate-950">
             Pricing
           </Link>

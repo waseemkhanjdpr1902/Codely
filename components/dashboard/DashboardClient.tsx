@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BarChart3, Clock, Code2, FolderPlus, Sparkles, Tags } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -9,17 +9,12 @@ import { CodelyProject, UsageState, formatDate, getPlanLimit, getProjects, getRe
 
 export default function DashboardClient() {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<CodelyProject[]>([]);
-  const [usage, setUsage] = useState<UsageState | null>(null);
+  const [projects] = useState<CodelyProject[]>(() => getProjects());
+  const [usage] = useState<UsageState>(() => getUsage());
 
-  useEffect(() => {
-    setProjects(getProjects());
-    setUsage(getUsage());
-  }, []);
-
-  const limit = usage ? getPlanLimit(usage.plan) : 5;
-  const remaining = usage ? getRemainingGenerations(usage) : 5;
-  const usagePercent = usage && Number.isFinite(limit) ? Math.min(100, (usage.aiGenerations / limit) * 100) : 12;
+  const limit = getPlanLimit(usage.plan);
+  const remaining = getRemainingGenerations(usage);
+  const usagePercent = Number.isFinite(limit) ? Math.min(100, (usage.aiGenerations / limit) * 100) : 12;
 
   return (
     <>
@@ -65,7 +60,7 @@ export default function DashboardClient() {
               <div className="mb-2 flex justify-between text-sm">
                 <span className="text-slate-600">AI generations</span>
                 <span className="font-semibold text-slate-950">
-                  {usage?.aiGenerations || 0} / {Number.isFinite(limit) ? limit : 'Unlimited'}
+                  {usage.aiGenerations} / {Number.isFinite(limit) ? limit : 'Unlimited'}
                 </span>
               </div>
               <div className="h-2 rounded-lg bg-slate-100">
@@ -115,7 +110,7 @@ export default function DashboardClient() {
           <div className="grid gap-3">
             <Metric icon={Code2} label="Saved code files" value={String(projects.reduce((total, project) => total + project.files.length, 0))} />
             <Metric icon={Clock} label="Recent generations" value={String(projects.length)} />
-            <Metric icon={Tags} label="Current plan" value={usage?.plan || 'Free'} />
+            <Metric icon={Tags} label="Current plan" value={usage.plan} />
           </div>
           <Button href="/pricing" variant="primary" className="mt-5 w-full">
             View Plans

@@ -145,9 +145,8 @@ export default function BuilderWorkspace() {
     const tool = params.get('tool');
     const category = toolCategories.find((item) => slugify(item.title) === tool || item.mode === tool);
     if (category) {
-      chooseCategory(category, false);
+      window.setTimeout(() => chooseCategory(category, false), 0);
     }
-    setUsage(getUsage());
   }, []);
 
   const files = result?.files.length ? result.files : starterFiles;

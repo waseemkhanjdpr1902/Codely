@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CreditCard, KeyRound, Rocket, ShieldCheck, UserRound } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -43,11 +43,7 @@ const settings = [
 export default function SettingsClient() {
   const { user, firebaseConfigured } = useAuth();
   const [active, setActive] = useState('profile');
-  const [usage, setUsage] = useState<UsageState | null>(null);
-
-  useEffect(() => {
-    setUsage(getUsage());
-  }, []);
+  const [usage] = useState<UsageState>(() => getUsage());
 
   return (
     <>
@@ -79,7 +75,7 @@ export default function SettingsClient() {
             <Info label="Name" value={user?.name || 'Guest'} />
             <Info label="Email" value={user?.email || 'Not signed in'} />
             <Info label="Auth provider" value={user?.provider === 'firebase' ? 'Firebase Auth' : 'Local launch mode'} />
-            <Info label="Current plan" value={usage?.plan || 'Free'} />
+            <Info label="Current plan" value={usage.plan} />
           </Panel>
         )}
 
