@@ -1,8 +1,9 @@
 'use client';
 
-import { FolderKanban, Home, LayoutDashboard, Settings, Sparkles, Tags } from 'lucide-react';
+import { FolderKanban, HelpCircle, Home, LogOut, Settings, Sparkles, Tags } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const links = [
   { href: '/dashboard', label: 'Home', icon: Home },
@@ -10,10 +11,12 @@ const links = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/pricing', label: 'Pricing', icon: Tags },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="flex min-h-screen w-full flex-col border-r border-slate-200 bg-white px-3 py-4 lg:w-64">
@@ -46,12 +49,22 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-950">
-          <LayoutDashboard size={16} />
-          Phase 2
+      <div className="mt-auto space-y-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p>
+          <p className="mt-2 truncate text-sm font-semibold text-slate-950">{user?.name || 'Guest'}</p>
+          <p className="truncate text-xs text-slate-500">{user?.email || 'Use local demo or login'}</p>
+          {user && (
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <LogOut size={15} />
+              Logout
+            </button>
+          )}
         </div>
-        <p className="text-xs leading-5 text-slate-500">UI shell is active. Backend features come next.</p>
       </div>
     </aside>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonProps = {
   children: ReactNode;
@@ -10,7 +10,7 @@ type ButtonProps = {
   className?: string;
   actionMessage?: string;
   type?: 'button' | 'submit';
-};
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'aria-label'>;
 
 const variants = {
   primary: 'bg-[#2563eb] text-white shadow-sm shadow-blue-200 hover:bg-[#1d4ed8]',
@@ -26,12 +26,15 @@ export default function Button({
   className = '',
   actionMessage,
   type = 'button',
+  onClick,
+  disabled,
+  'aria-label': ariaLabel,
 }: ButtonProps) {
-  const classes = `inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${variants[variant]} ${className}`;
+  const classes = `inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-60 ${variants[variant]} ${className}`;
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} aria-label={ariaLabel}>
         {children}
       </Link>
     );
@@ -41,7 +44,10 @@ export default function Button({
     <button
       type={type}
       className={classes}
-      onClick={() => {
+      disabled={disabled}
+      aria-label={ariaLabel}
+      onClick={(event) => {
+        onClick?.(event);
         if (actionMessage) {
           window.alert(actionMessage);
         }

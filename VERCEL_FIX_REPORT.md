@@ -2,7 +2,7 @@
 
 ## Actual root directory
 
-`C:\Users\dell\Documents\Codex\2026-05-12\cd-c-users-dell-documents-nurrulquran\Codely`
+Repository root.
 
 This is the real Next.js root. It contains `package.json`, `app/layout.tsx`, `app/page.tsx`, `app/globals.css`, `next.config.js`, and `tsconfig.json`.
 

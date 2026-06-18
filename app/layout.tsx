@@ -1,8 +1,9 @@
 import "./globals.css";
+import AuthProvider from "@/components/auth/AuthProvider";
 
 export const metadata = {
   title: "Codely",
-  description: "AI coding workspace",
+  description: "Build simple apps and tools with AI, without coding.",
 };
 
 export default function RootLayout({
@@ -12,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

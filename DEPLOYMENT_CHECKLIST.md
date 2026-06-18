@@ -8,7 +8,7 @@ The Next.js app lives at the repository root:
 Codely/
   app/
   package.json
-  next.config.mjs
+  next.config.js
   tailwind.config.ts
   postcss.config.js
 ```
@@ -29,24 +29,27 @@ Do not set a custom output directory. Do not configure this project as a static 
 ## Required Entry Points
 
 - `package.json`
-- `next.config.mjs`
+- `next.config.js`
 - `app/layout.tsx`
 - `app/page.tsx`
 - `app/globals.css`
 
 ## Environment Variables
 
-The temporary deployment check page does not require environment variables.
+Production app features may require:
 
-Future app features may require:
-
+- `GEMINI_API_KEY`
 - `OPENAI_API_KEY`
+- `GROQ_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
 
 ## Local Verification
 
