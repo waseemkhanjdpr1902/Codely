@@ -30,16 +30,15 @@ type ProviderDetail = {
 
 type GeneratedFile = {
   path: string;
+  language?: string;
   content: string;
 };
 
 type CodelyOutput = {
-  plan: string;
-  pages: string[];
-  features: string[];
-  code: string;
-  readme: string;
+  summary: string;
+  projectType: 'nextjs';
   files: GeneratedFile[];
+  runCommands: string[];
 };
 
 type ProviderAttempt = {
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    const normalized = normalizeAiOutput(result.output, body);
+    const normalized = normalizeAiOutput(result.output);
     const techStack = body.techStack?.length ? body.techStack : ['Next.js', 'React', 'TypeScript', 'Tailwind'];
 
     return NextResponse.json({
@@ -102,16 +101,18 @@ export async function POST(request: NextRequest) {
       output: normalized,
       // Backward-compatible fields used by the current builder UI.
       title: getTitle(body),
-      summary: normalized.plan,
+      summary: normalized.summary,
       files: normalized.files,
+      projectType: normalized.projectType,
+      runCommands: normalized.runCommands,
       app:
         body.mode === 'app'
           ? {
               appName: getTitle(body),
-              description: normalized.plan,
-              plan: normalized.plan,
-              pages: normalized.pages,
-              components: normalized.features,
+              description: normalized.summary,
+              plan: normalized.summary,
+              pages: inferPages(normalized.files),
+              components: inferComponents(normalized.files),
               techStack,
               files: normalized.files,
             }
@@ -157,10 +158,12 @@ function createGenerationRequest(body: GenerateBody) {
   const mode = body.mode === 'ai' ? 'code' : body.mode;
   const schema = [
     'Return only JSON with this exact shape:',
-    '{"plan":"","pages":[],"features":[],"code":"","readme":"","files":[{"path":"","content":""}]}',
-    'All array items must be strings. files must contain safe relative paths and complete file contents.',
-    'Return a complete Next.js TypeScript project. Do not return static HTML only. Do not return README only.',
-    'Required file paths include app/page.tsx, components/AppShell.tsx, lib/utils.ts, hooks/use-project.ts, public/.gitkeep, styles/globals.css, package.json, README.md, and .env.example.',
+    '{"summary":"","projectType":"nextjs","files":[{"path":"package.json","language":"json","content":""},{"path":"app/page.tsx","language":"tsx","content":""},{"path":"components/MainTool.tsx","language":"tsx","content":""},{"path":"app/globals.css","language":"css","content":""},{"path":"README.md","language":"markdown","content":""}],"runCommands":["npm install","npm run dev"]}',
+    'Return a complete modern Next.js TypeScript project using React and Tailwind CSS.',
+    'Do not return only planning text.',
+    'Do not return only static HTML unless the user specifically asks for HTML.',
+    'Every file must include a safe relative path, language, and complete content.',
+    'Required file paths: package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md.',
   ].join('\n');
 
   const system = [
@@ -192,11 +195,11 @@ function createGenerationRequest(body: GenerateBody) {
 
 function getModeInstructions(mode: GenerateMode) {
   if (mode === 'app') {
-    return 'Create a complete Next.js TypeScript project with App Router files, reusable components, package.json, README, and .env.example.';
+    return 'Create a complete Next.js TypeScript app project with package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md, and run commands.';
   }
 
   if (mode === 'code') {
-    return 'Generate a complete Next.js TypeScript project for the requested tool or component. Include App Router files, package.json, README, and .env.example.';
+    return 'Generate a complete Next.js TypeScript project for the requested tool or component. Include package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md, and run commands.';
   }
 
   if (mode === 'error') {
@@ -208,7 +211,7 @@ function getModeInstructions(mode: GenerateMode) {
   }
 
   if (mode === 'prompt-app') {
-    return 'Turn the plain English idea into a step-by-step MVP plan and complete Next.js TypeScript starter project.';
+    return 'Turn the plain English idea into a complete Next.js TypeScript starter project with real files and run commands.';
   }
 
   return 'Generate a useful result for the request.';
@@ -414,111 +417,56 @@ async function getProviderReason(response: Response, provider: ProviderName) {
 
 function parseProviderOutput(raw: string): CodelyOutput {
   const parsed = JSON.parse(extractJson(raw));
-  const plan = stringValue(parsed.plan || parsed.summary || parsed.description, 'Generated a practical plan for your request.');
-  const pages = stringArray(parsed.pages);
-  const features = stringArray(parsed.features || parsed.components);
-  const code = stringValue(parsed.code || firstFileContent(parsed.files), '');
-  const readme = stringValue(parsed.readme, createReadme(plan, pages, features));
-  const files = normalizeFiles(parsed.files, code, readme);
+  const summary = stringValue(parsed.summary || parsed.plan || parsed.description, 'Codely generated a complete modern app project for you.');
+  const files = normalizeFiles(parsed.files, summary);
+  const runCommands = normalizeRunCommands(parsed.runCommands);
 
   return {
-    plan,
-    pages: pages.length ? pages : ['Main screen', 'Results screen'],
-    features: features.length ? features : ['Simple input form', 'Generated output', 'Copy and download actions'],
-    code: code || files.find((file) => file.path !== 'README.md')?.content || '',
-    readme,
+    summary,
+    projectType: 'nextjs',
     files,
+    runCommands,
   };
 }
 
-function normalizeAiOutput(output: CodelyOutput, body: GenerateBody): CodelyOutput {
-  if (output.files.length > 0) {
-    return {
-      ...output,
-      files: ensureRequiredProjectFiles(output.files, output.code, output.readme, body.mode),
-    };
-  }
-
+function normalizeAiOutput(output: CodelyOutput): CodelyOutput {
   return {
     ...output,
-    files: normalizeFiles([], output.code, output.readme || createReadme(output.plan, output.pages, output.features), body.mode),
+    summary: output.summary || 'Codely generated a complete modern app project for you.',
+    projectType: 'nextjs',
+    files: ensureRequiredProjectFiles(output.files, output.summary),
+    runCommands: output.runCommands?.length ? output.runCommands : ['npm install', 'npm run dev'],
   };
 }
 
-function ensureRequiredProjectFiles(files: GeneratedFile[], code = '', readme = '', mode: GenerateMode = 'app') {
-  const requiredFiles = normalizeFiles([], code, readme, mode);
+function ensureRequiredProjectFiles(files: GeneratedFile[], summary = '') {
+  const requiredFiles = createDefaultProjectFiles(summary);
   const existingPaths = new Set(files.map((file) => file.path));
   const missingFiles = requiredFiles.filter((file) => !existingPaths.has(file.path));
   return [...files, ...missingFiles].slice(0, 24);
 }
 
-function normalizeFiles(value: unknown, code = '', readme = '', mode: GenerateMode = 'app'): GeneratedFile[] {
+function normalizeFiles(value: unknown, summary = ''): GeneratedFile[] {
   const files = Array.isArray(value)
     ? value
         .filter((file) => file?.path && typeof file.content === 'string')
         .map((file) => ({
           path: sanitizePath(String(file.path)),
+          language: typeof file.language === 'string' ? file.language : inferLanguage(String(file.path)),
           content: String(file.content),
         }))
         .filter((file) => file.path)
-        .slice(0, 12)
+        .slice(0, 24)
     : [];
 
-  if (files.length > 0) return files;
+  return files.length ? ensureRequiredProjectFiles(files, summary) : createDefaultProjectFiles(summary);
+}
 
+function createDefaultProjectFiles(summary = ''): GeneratedFile[] {
   return [
     {
-      path: 'app/page.tsx',
-      content:
-        code ||
-        `import AppShell from "@/components/AppShell";
-
-export default function Page() {
-  return <AppShell />;
-}
-`,
-    },
-    {
-      path: 'components/AppShell.tsx',
-      content: `export default function AppShell() {
-  return (
-    <main className="min-h-screen bg-slate-50 p-8 text-slate-950">
-      <section className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold text-blue-600">Generated by Codely</p>
-        <h1 className="mt-3 text-3xl font-bold">Your app is ready to customize</h1>
-        <p className="mt-3 text-slate-600">Use this starter project as the first version of your idea.</p>
-      </section>
-    </main>
-  );
-}
-`,
-    },
-    {
-      path: 'lib/utils.ts',
-      content: `export function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-`,
-    },
-    {
-      path: 'hooks/use-project.ts',
-      content: `export function useProject() {
-  return {
-    status: "ready",
-  };
-}
-`,
-    },
-    {
-      path: 'public/.gitkeep',
-      content: '',
-    },
-    {
-      path: 'styles/globals.css',
-      content: '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n',
-    },
-    {
       path: 'package.json',
+      language: 'json',
       content: JSON.stringify(
         {
           scripts: {
@@ -534,6 +482,8 @@ export default function Page() {
           devDependencies: {
             typescript: 'latest',
             tailwindcss: 'latest',
+            postcss: 'latest',
+            autoprefixer: 'latest',
           },
         },
         null,
@@ -541,12 +491,50 @@ export default function Page() {
       ),
     },
     {
-      path: 'README.md',
-      content: readme || '# Codely generated project\n\nRun `npm install` and `npm run dev` to start.\n',
+      path: 'app/page.tsx',
+      language: 'tsx',
+      content: `import MainTool from "@/components/MainTool";
+
+export default function Page() {
+  return <MainTool />;
+}
+`,
     },
     {
-      path: '.env.example',
-      content: 'NEXT_PUBLIC_APP_URL=\n',
+      path: 'components/MainTool.tsx',
+      language: 'tsx',
+      content: `export default function MainTool() {
+  return (
+    <main className="min-h-screen bg-slate-50 p-8 text-slate-950">
+      <section className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm">
+        <p className="text-sm font-semibold text-blue-600">Generated by Codely</p>
+        <h1 className="mt-3 text-3xl font-bold">Your app is ready</h1>
+        <p className="mt-3 text-slate-600">${escapeTemplateText(summary || 'Use this starter project as the first version of your idea.')}</p>
+      </section>
+    </main>
+  );
+}
+`,
+    },
+    {
+      path: 'app/globals.css',
+      language: 'css',
+      content: '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n',
+    },
+    {
+      path: 'README.md',
+      language: 'markdown',
+      content: `# Codely generated app
+
+${summary || 'A modern Next.js TypeScript app generated by Codely.'}
+
+## Run on your computer
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+`,
     },
   ];
 }
@@ -565,16 +553,6 @@ function extractJson(raw: string) {
   return trimmed.slice(start, end + 1);
 }
 
-function firstFileContent(files: unknown) {
-  if (!Array.isArray(files)) return '';
-  const firstFile = files.find((file) => file && typeof file.content === 'string');
-  return firstFile?.content || '';
-}
-
-function createReadme(plan: string, pages: string[], features: string[]) {
-  return [`# Codely generated output`, '', `## Plan`, plan, '', `## Pages`, ...pages.map((page) => `- ${page}`), '', `## Features`, ...features.map((feature) => `- ${feature}`)].join('\n');
-}
-
 function getTitle(body: GenerateBody) {
   if (body.mode === 'code' || body.mode === 'ai') return 'Generated code';
   if (body.mode === 'error') return 'Fixed error';
@@ -583,14 +561,40 @@ function getTitle(body: GenerateBody) {
   return body.category || 'Generated Codely App';
 }
 
-function stringArray(value: unknown) {
-  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 12);
-  if (typeof value === 'string' && value.trim()) return [value.trim()];
-  return [];
-}
-
 function stringValue(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function normalizeRunCommands(value: unknown) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 6);
+  return ['npm install', 'npm run dev'];
+}
+
+function inferLanguage(path: string) {
+  if (path.endsWith('.tsx')) return 'tsx';
+  if (path.endsWith('.ts')) return 'ts';
+  if (path.endsWith('.css')) return 'css';
+  if (path.endsWith('.json')) return 'json';
+  if (path.endsWith('.md')) return 'markdown';
+  return 'text';
+}
+
+function inferPages(files: GeneratedFile[]) {
+  const pages = files
+    .filter((file) => file.path.startsWith('app/') && file.path.endsWith('page.tsx'))
+    .map((file) => file.path.replace(/^app\//, '').replace(/\/page\.tsx$/, '') || 'Home');
+  return pages.length ? pages : ['Home'];
+}
+
+function inferComponents(files: GeneratedFile[]) {
+  const components = files
+    .filter((file) => file.path.startsWith('components/') && file.path.endsWith('.tsx'))
+    .map((file) => file.path.replace(/^components\//, '').replace(/\.tsx$/, ''));
+  return components.length ? components : ['MainTool'];
+}
+
+function escapeTemplateText(value: string) {
+  return value.replace(/[`$\\]/g, '');
 }
 
 function sanitizePath(path: string) {
