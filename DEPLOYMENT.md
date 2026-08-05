@@ -15,24 +15,27 @@ Do not set a custom output directory. This project uses the Next.js App Router a
 - `app/layout.tsx`
 - `app/page.tsx`
 - `app/globals.css`
-- `next.config.mjs`
+- `next.config.js`
 - `package.json`
 - `tailwind.config.ts`
 - `postcss.config.js`
 
 ## Environment Variables
 
-The temporary homepage does not require environment variables.
+Production AI, auth, and payment features use these variables:
 
-Future Firebase and AI features may require:
-
+- `GEMINI_API_KEY`
 - `OPENAI_API_KEY`
+- `GROQ_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
 - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
 
 ## Routing
 
