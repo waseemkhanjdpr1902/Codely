@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Clipboard, Code2, Download, FileText, Folder, Loader2, Rocket, Save, Sparkles } from 'lucide-react';
+import { AlertTriangle, Clipboard, Code2, Download, FileText, Folder, Loader2, Monitor, Rocket, Save, Smartphone, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -8,6 +8,7 @@ import { GeneratedFile, recordUsage, saveProject } from '@/lib/local-workspace';
 
 type ProjectType = 'Website' | 'Mobile App' | 'SaaS Tool' | 'Calculator' | 'Dashboard' | 'Form' | 'AI Tool' | 'Custom';
 type OutputTab = 'Preview' | 'Files' | 'Code' | 'Run & Deploy';
+type PreviewSize = 'desktop' | 'mobile';
 
 type ProjectFile = GeneratedFile & {
   language?: string;
@@ -33,6 +34,11 @@ const advancedOptions = ['Next.js', 'React', 'TypeScript', 'Tailwind', 'Firebase
 const outputTabs: OutputTab[] = ['Preview', 'Files', 'Code', 'Run & Deploy'];
 
 const starterFiles: ProjectFile[] = [
+  {
+    path: 'preview.html',
+    language: 'html',
+    content: '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui;margin:0;display:grid;min-height:100vh;place-items:center;background:#eff6ff;color:#0f172a}.card{max-width:600px;margin:24px;padding:32px;border-radius:20px;background:white;box-shadow:0 20px 50px #1e3a8a18}p{color:#475569}</style></head><body><main class="card"><h1>Your app preview will appear here</h1><p>Describe your idea and click Generate My App.</p></main></body></html>',
+  },
   {
     path: 'package.json',
     language: 'json',
@@ -80,6 +86,8 @@ export default function BuilderWorkspace() {
   const [developerDetails, setDeveloperDetails] = useState('');
   const [toast, setToast] = useState('');
   const [showDeployGuide, setShowDeployGuide] = useState(false);
+  const [revision, setRevision] = useState('');
+  const [previewSize, setPreviewSize] = useState<PreviewSize>('desktop');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -148,6 +156,62 @@ export default function BuilderWorkspace() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function reviseApp() {
+    if (!result || !revision.trim()) {
+      setError('Generate an app, then describe the change you want.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setDeveloperDetails('');
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'revise',
+          prompt,
+          category: projectType,
+          techStack: selectedAdvanced,
+          revision,
+          existingFiles: result.files,
+        }),
+      });
+      const data = await response.json().catch(() => ({ success: false, message: 'Generation endpoint did not return JSON.' }));
+      if (!response.ok || !data.success) {
+        setError(data.message || 'Codely could not apply that change.');
+        setDeveloperDetails(formatDeveloperDetails(data, response.status));
+        return;
+      }
+
+      const output = data.output || data;
+      const nextFiles = normalizeFiles(output.files || data.files || []);
+      setResult({
+        summary: output.summary || result.summary,
+        projectType: output.projectType || result.projectType,
+        files: nextFiles,
+        runCommands: normalizeRunCommands(output.runCommands),
+        provider: data.provider,
+      });
+      setRevision('');
+      setActiveTab('Preview');
+      recordUsage('aiGenerations');
+      showToast('Change applied');
+    } catch (revisionError: any) {
+      setError('Codely could not apply that change.');
+      setDeveloperDetails(revisionError?.message || 'Unknown revision error.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function updateSelectedFile(content: string) {
+    if (!result || !selectedFile) return;
+    setResult({ ...result, files: result.files.map((file) => (file.path === selectedFile.path ? { ...file, content } : file)) });
   }
 
   function toggleAdvanced(option: string) {
@@ -354,28 +418,39 @@ export default function BuilderWorkspace() {
 
   function renderOutput() {
     if (activeTab === 'Preview') {
+      const previewHtml = files.find((file) => file.path === 'preview.html')?.content;
       return (
-        <div className="grid gap-4 lg:grid-cols-[1fr_0.8fr]">
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50 to-white p-6">
-            <div className="mb-5 flex items-center gap-2 text-sm font-semibold text-blue-700">
-              <CheckCircle2 size={16} />
-              Preview
+        <div className="space-y-4">
+          {result && (
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <label htmlFor="revision" className="text-sm font-semibold text-slate-950">What would you like to change?</label>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <input id="revision" value={revision} onChange={(event) => setRevision(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') reviseApp(); }} className="h-11 flex-1 rounded-xl border border-blue-200 bg-white px-4 text-sm outline-none focus:border-blue-400" placeholder="Example: Make it green and add an email field" />
+                <Button onClick={reviseApp} disabled={loading || !revision.trim()} className="h-11">
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  Apply change
+                </Button>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-950">{projectType} project</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              {result?.summary || 'After generation, Codely will show a clear preview explanation here. If the preview cannot run inside the browser, you will still see the pages and project files.'}
-            </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {['Modern UI', 'Real files', 'Run locally'].map((item) => (
-                <div key={item} className="rounded-xl bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm">
-                  {item}
-                </div>
-              ))}
+          )}
+          <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">Interactive preview</p>
+                <p className="text-xs text-slate-500">Runs in an isolated browser frame</p>
+              </div>
+              <div className="flex rounded-xl bg-white p-1 shadow-sm">
+                <button type="button" onClick={() => setPreviewSize('desktop')} aria-label="Desktop preview" className={`rounded-lg p-2 ${previewSize === 'desktop' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}><Monitor size={16} /></button>
+                <button type="button" onClick={() => setPreviewSize('mobile')} aria-label="Mobile preview" className={`rounded-lg p-2 ${previewSize === 'mobile' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}><Smartphone size={16} /></button>
+              </div>
             </div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="mb-3 text-sm font-semibold text-slate-950">File tree</p>
-            {fileTree.map((node) => renderFileNode(node))}
+            <div className="mx-auto overflow-hidden rounded-xl bg-white shadow-sm transition-all" style={{ maxWidth: previewSize === 'mobile' ? 390 : 1200 }}>
+              {previewHtml ? (
+                <iframe title="Generated app preview" sandbox="allow-scripts allow-forms allow-modals allow-downloads" srcDoc={securePreviewHtml(previewHtml)} className="h-[620px] w-full border-0" />
+              ) : (
+                <div className="grid h-[420px] place-items-center p-8 text-center text-sm text-slate-500">Generate your app to open its live preview.</div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -389,9 +464,10 @@ export default function BuilderWorkspace() {
       return (
         <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
           <div className="rounded-2xl border border-slate-200 p-3">{fileTree.map((node) => renderFileNode(node))}</div>
-          <pre className="max-h-[560px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-            <code>{selectedFile?.content || 'Generated code will appear here.'}</code>
-          </pre>
+          <div>
+            <div className="mb-2 flex items-center justify-between"><p className="text-sm font-semibold text-slate-950">{selectedFile?.path}</p><span className="text-xs text-slate-500">Changes are included when you save or download</span></div>
+            <textarea aria-label={`Edit ${selectedFile?.path || 'generated file'}`} value={selectedFile?.content || ''} onChange={(event) => updateSelectedFile(event.target.value)} spellCheck={false} className="h-[560px] w-full resize-none overflow-auto rounded-2xl border-0 bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100 outline-none ring-blue-400 focus:ring-2" />
+          </div>
         </div>
       );
     }
@@ -491,7 +567,14 @@ function normalizeRunCommands(commands: unknown) {
   return ['npm install', 'npm run dev'];
 }
 
+function securePreviewHtml(html: string) {
+  const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:;">`;
+  if (/<head[\s>]/i.test(html)) return html.replace(/<head([^>]*)>/i, `<head$1>${policy}`);
+  return `${policy}${html}`;
+}
+
 function inferLanguage(path: string) {
+  if (path.endsWith('.html')) return 'html';
   if (path.endsWith('.tsx')) return 'tsx';
   if (path.endsWith('.ts')) return 'ts';
   if (path.endsWith('.css')) return 'css';
