@@ -1,6 +1,6 @@
 # Codely
 
-Codely helps non-coders build simple apps, tools, and websites with AI.
+Codely helps non-coders build simple apps, tools, and websites with AI. The Pro plan is ₹1,999/month with 1,500 monthly credits.
 
 Positioning: **Build simple apps and tools with AI, without coding.**
 

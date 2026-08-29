@@ -4,7 +4,8 @@ import { AlertTriangle, CheckCircle2, Clipboard, Code2, Download, FileText, Fold
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { GeneratedFile, recordUsage, saveProject } from '@/lib/local-workspace';
+import { auth } from '@/lib/firebase-client';
+import { GeneratedFile, canGenerate, recordUsage, saveProject } from '@/lib/local-workspace';
 
 type ProjectType = 'Website' | 'Mobile App' | 'SaaS Tool' | 'Calculator' | 'Dashboard' | 'Form' | 'AI Tool' | 'Custom';
 type OutputTab = 'Preview' | 'Files' | 'Code' | 'Run & Deploy';
@@ -101,15 +102,21 @@ export default function BuilderWorkspace() {
       return;
     }
 
+    if (!canGenerate()) {
+      setError('You have used your available credits. Upgrade or wait for the next monthly reset.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setDeveloperDetails('');
     setActiveTab('Preview');
 
     try {
+      const token = await auth?.currentUser?.getIdToken();
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           mode: 'app',
           prompt,

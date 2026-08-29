@@ -5,7 +5,7 @@ import { BarChart3, Clock, Code2, FolderPlus, Sparkles, Tags } from 'lucide-reac
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { CodelyProject, UsageState, formatDate, getPlanLimit, getProjects, getRemainingGenerations, getUsage } from '@/lib/local-workspace';
+import { CodelyProject, GENERATION_CREDIT_COST, UsageState, formatDate, getPlanLimit, getProjects, getRemainingGenerations, getUsage } from '@/lib/local-workspace';
 
 export default function DashboardClient() {
   const { user } = useAuth();
@@ -58,16 +58,16 @@ export default function DashboardClient() {
           <div className="mt-5 space-y-4">
             <div>
               <div className="mb-2 flex justify-between text-sm">
-                <span className="text-slate-600">AI generations</span>
+                <span className="text-slate-600">Credits used</span>
                 <span className="font-semibold text-slate-950">
-                  {usage.aiGenerations} / {Number.isFinite(limit) ? limit : 'Unlimited'}
+                  {usage.aiGenerations} / {limit}
                 </span>
               </div>
               <div className="h-2 rounded-lg bg-slate-100">
                 <div className="h-2 rounded-lg bg-blue-600" style={{ width: `${usagePercent}%` }} />
               </div>
               <p className="mt-2 text-xs text-slate-500">
-                {Number.isFinite(remaining) ? `You have ${remaining} generations left this month.` : 'Unlimited fair-use generations are active.'}
+                About {remaining} standard builds remaining at {GENERATION_CREDIT_COST} credits per build.
               </p>
             </div>
             <Button href="/pricing" variant="secondary" className="w-full">
