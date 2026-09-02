@@ -4,7 +4,7 @@ import { consumeBuildCredits, isFirebaseAdminConfigured, verifyFirebaseRequest }
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type GenerateMode = 'execute' | 'ai' | 'app' | 'code' | 'error' | 'ui' | 'prompt-app';
+type GenerateMode = 'execute' | 'ai' | 'app' | 'revise' | 'code' | 'error' | 'ui' | 'prompt-app';
 type ProviderName = 'gemini' | 'openai' | 'groq';
 type SuccessProviderName = ProviderName | 'codely-local';
 
@@ -21,6 +21,8 @@ type GenerateBody = {
   errorMessage?: string;
   template?: string;
   techStack?: string[];
+  existingFiles?: GeneratedFile[];
+  revision?: string;
 };
 
 type ProviderDetail = {
@@ -63,7 +65,7 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     message: 'Codely generation API is ready',
-    modes: ['execute', 'app', 'code', 'error', 'ui', 'prompt-app'],
+    modes: ['execute', 'app', 'revise', 'code', 'error', 'ui', 'prompt-app'],
     providers: ['gemini', 'openai', 'groq'],
   });
 }
@@ -158,6 +160,14 @@ function validateBody(body: GenerateBody) {
     if (!body.prompt?.trim()) return 'Please enter a prompt before generating.';
   }
 
+  if (body.mode === 'revise') {
+    if (!body.revision?.trim()) return 'Describe the change you want to make.';
+    if (!Array.isArray(body.existingFiles) || body.existingFiles.length === 0) return 'Generate an app before requesting changes.';
+    if (body.existingFiles.length > 30) return 'This project has too many files to revise safely.';
+    const totalSize = body.existingFiles.reduce((size, file) => size + String(file?.content || '').length, 0);
+    if (totalSize > 500_000) return 'This project is too large to revise in one request.';
+  }
+
   if (body.mode === 'error') {
     if (!body.errorMessage?.trim()) return 'Please paste the error message.';
     if (!body.code?.trim()) return 'Please paste the code snippet.';
@@ -174,12 +184,13 @@ function createGenerationRequest(body: GenerateBody) {
   const mode = body.mode === 'ai' ? 'code' : body.mode;
   const schema = [
     'Return only JSON with this exact shape:',
-    '{"summary":"","projectType":"nextjs","files":[{"path":"package.json","language":"json","content":""},{"path":"app/page.tsx","language":"tsx","content":""},{"path":"components/MainTool.tsx","language":"tsx","content":""},{"path":"app/globals.css","language":"css","content":""},{"path":"README.md","language":"markdown","content":""}],"runCommands":["npm install","npm run dev"]}',
+    '{"summary":"","projectType":"nextjs","files":[{"path":"preview.html","language":"html","content":""},{"path":"package.json","language":"json","content":""},{"path":"app/page.tsx","language":"tsx","content":""},{"path":"components/MainTool.tsx","language":"tsx","content":""},{"path":"app/globals.css","language":"css","content":""},{"path":"README.md","language":"markdown","content":""}],"runCommands":["npm install","npm run dev"]}',
     'Return a complete modern Next.js TypeScript project using React and Tailwind CSS.',
     'Do not return only planning text.',
     'Do not return only static HTML unless the user specifically asks for HTML.',
     'Every file must include a safe relative path, language, and complete content.',
-    'Required file paths: package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md.',
+    'Required file paths: preview.html, package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md.',
+    'preview.html must be a complete standalone interactive preview with inline CSS and JavaScript, no external scripts, no network requests, and no secrets.',
   ].join('\n');
 
   const system = [
@@ -201,6 +212,10 @@ function createGenerationRequest(body: GenerateBody) {
     body.designStyle ? `Design style: ${body.designStyle}` : '',
     body.errorMessage ? `Error message:\n${body.errorMessage}` : '',
     body.code ? `Code:\n${body.code}` : '',
+    body.revision ? `Requested change: ${body.revision}` : '',
+    body.mode === 'revise' && body.existingFiles
+      ? `Current project files (return the complete updated project, not a patch):\n${JSON.stringify(body.existingFiles)}`
+      : '',
     getModeInstructions(mode || 'app'),
   ]
     .filter(Boolean)
@@ -211,7 +226,11 @@ function createGenerationRequest(body: GenerateBody) {
 
 function getModeInstructions(mode: GenerateMode) {
   if (mode === 'app') {
-    return 'Create a complete Next.js TypeScript app project with package.json, app/page.tsx, components/MainTool.tsx, app/globals.css, README.md, and run commands.';
+    return 'Create a complete Next.js TypeScript app project and a matching interactive standalone preview.html.';
+  }
+
+  if (mode === 'revise') {
+    return 'Apply the requested change consistently to the existing app and preview. Preserve features that were not changed. Return every project file.';
   }
 
   if (mode === 'code') {
@@ -539,6 +558,11 @@ function createLocalProjectFiles(kind: string, title: string, summary: string): 
 
   return [
     {
+      path: 'preview.html',
+      language: 'html',
+      content: createStandalonePreview(title, summary),
+    },
+    {
       path: 'package.json',
       language: 'json',
       content: JSON.stringify(
@@ -717,6 +741,17 @@ Open http://localhost:3000 in your browser.
       content: 'NEXT_PUBLIC_APP_URL=http://localhost:3000\n',
     },
   ];
+}
+
+function createStandalonePreview(title: string, summary: string) {
+  const safeTitle = escapeHtml(title);
+  const safeSummary = escapeHtml(summary);
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:linear-gradient(135deg,#eff6ff,#fff);color:#0f172a;min-height:100vh;padding:32px}.app{max-width:860px;margin:auto}.badge{color:#1d4ed8;font-weight:700}.card{margin-top:24px;background:#fff;border:1px solid #dbeafe;border-radius:20px;padding:28px;box-shadow:0 18px 50px #1e3a8a18}h1{font-size:clamp(2rem,6vw,3.6rem);margin:12px 0}p{color:#475569;line-height:1.7}.row{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}input{flex:1;min-width:220px;padding:14px;border:1px solid #cbd5e1;border-radius:12px}button{border:0;border-radius:12px;background:#2563eb;color:#fff;padding:14px 20px;font-weight:700;cursor:pointer}#result{margin-top:16px;padding:14px;background:#f8fafc;border-radius:12px;display:none}</style></head><body><main class="app"><span class="badge">LIVE CODELY PREVIEW</span><h1>${safeTitle}</h1><p>${safeSummary}</p><section class="card"><h2>Try your app</h2><p>This preview is interactive. Enter a value to test it.</p><div class="row"><input id="input" placeholder="Type something…"/><button id="action">Run</button></div><div id="result"></div></section></main><script>document.getElementById('action').addEventListener('click',function(){var input=document.getElementById('input');var result=document.getElementById('result');result.textContent=input.value?'Your app received: '+input.value:'Enter a value first.';result.style.display='block'});</script></body></html>`;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character);
 }
 
 function createMainToolComponent(kind: string, title: string) {
