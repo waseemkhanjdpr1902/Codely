@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderKanban, HelpCircle, Home, LogOut, Settings, Sparkles, Tags } from 'lucide-react';
+import { FolderKanban, HelpCircle, Home, LogOut, Settings, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -9,9 +9,6 @@ const links = [
   { href: '/dashboard', label: 'Home', icon: Home },
   { href: '/builder', label: 'Builder', icon: Sparkles },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
-  { href: '/pricing', label: 'Pricing', icon: Tags },
-  { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/help', label: 'Help', icon: HelpCircle },
 ];
 
 export default function AppSidebar() {
@@ -19,15 +16,15 @@ export default function AppSidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="flex min-h-screen w-full flex-col border-r border-slate-200 bg-white px-3 py-4 lg:w-64">
-      <Link href="/" className="mb-6 flex items-center gap-2 px-2">
+    <aside className="flex w-full flex-col border-b border-slate-200 bg-white px-3 py-3 lg:min-h-screen lg:w-64 lg:border-b-0 lg:border-r lg:py-4">
+      <Link href="/" className="mb-3 flex items-center gap-2 px-2 lg:mb-6">
         <span className="grid h-9 w-9 place-items-center rounded-lg bg-slate-950 text-sm font-bold text-white">
           C
         </span>
         <span className="text-lg font-bold text-slate-950">Codely</span>
       </Link>
 
-      <nav className="space-y-1">
+      <nav className="grid grid-cols-3 gap-1 lg:block lg:space-y-1">
         {links.map((item) => {
           const active = pathname === item.href;
           const Icon = item.icon;
@@ -43,13 +40,17 @@ export default function AppSidebar() {
               }`}
             >
               <Icon size={18} />
-              {item.label}
+              <span className="truncate">{item.label === 'Builder' ? 'Build App' : item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto space-y-3">
+      <div className="mt-auto hidden space-y-3 lg:block">
+        <div className="grid grid-cols-2 gap-1">
+          <Link href="/settings" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><Settings size={15} />Settings</Link>
+          <Link href="/help" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><HelpCircle size={15} />Help</Link>
+        </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p>
           <p className="mt-2 truncate text-sm font-semibold text-slate-950">{user?.name || 'Guest'}</p>

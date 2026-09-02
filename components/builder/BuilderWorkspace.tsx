@@ -4,11 +4,12 @@ import { AlertTriangle, Clipboard, Code2, Download, FileText, Folder, Loader2, M
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { GeneratedFile, recordUsage, saveProject } from '@/lib/local-workspace';
+import { auth } from '@/lib/firebase-client';
+import { GeneratedFile, canGenerate, recordUsage, saveProject } from '@/lib/local-workspace';
 
 type ProjectType = 'Website' | 'Mobile App' | 'SaaS Tool' | 'Calculator' | 'Dashboard' | 'Form' | 'AI Tool' | 'Custom';
-type OutputTab = 'Preview' | 'Files' | 'Code' | 'Run & Deploy';
 type PreviewSize = 'desktop' | 'mobile';
+type OutputTab = 'Result' | 'Project Files' | 'Code' | 'Launch';
 
 type ProjectFile = GeneratedFile & {
   language?: string;
@@ -31,7 +32,8 @@ type TreeNode = {
 
 const projectTypes: ProjectType[] = ['Website', 'Mobile App', 'SaaS Tool', 'Calculator', 'Dashboard', 'Form', 'AI Tool', 'Custom'];
 const advancedOptions = ['Next.js', 'React', 'TypeScript', 'Tailwind', 'Firebase', 'Supabase', 'Razorpay', 'Stripe', 'API Backend', 'Mobile APK/PWA'];
-const outputTabs: OutputTab[] = ['Preview', 'Files', 'Code', 'Run & Deploy'];
+const outputTabs: OutputTab[] = ['Result', 'Project Files', 'Code', 'Launch'];
+const quickIdeas = ['Booking website for my service business', 'Expense tracker for my small team', 'Customer enquiry form with email alerts'];
 
 const starterFiles: ProjectFile[] = [
   {
@@ -74,11 +76,11 @@ export default function Page() {
 ];
 
 export default function BuilderWorkspace() {
-  const [prompt, setPrompt] = useState('Create a loan EMI calculator with amount, interest rate, months, EMI result, and download option.');
+  const [prompt, setPrompt] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('Calculator');
   const [selectedAdvanced, setSelectedAdvanced] = useState<string[]>(['Next.js', 'React', 'TypeScript', 'Tailwind']);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [activeTab, setActiveTab] = useState<OutputTab>('Preview');
+  const [activeTab, setActiveTab] = useState<OutputTab>('Result');
   const [selectedPath, setSelectedPath] = useState('app/page.tsx');
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,15 +111,21 @@ export default function BuilderWorkspace() {
       return;
     }
 
+    if (!canGenerate()) {
+      setError('You have used your available credits. Upgrade or wait for the next monthly reset.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setDeveloperDetails('');
-    setActiveTab('Preview');
+    setActiveTab('Result');
 
     try {
+      const token = await auth?.currentUser?.getIdToken();
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           mode: 'app',
           prompt,
@@ -198,7 +206,7 @@ export default function BuilderWorkspace() {
         provider: data.provider,
       });
       setRevision('');
-      setActiveTab('Preview');
+      setActiveTab('Result');
       recordUsage('aiGenerations');
       showToast('Change applied');
     } catch (revisionError: any) {
@@ -273,27 +281,38 @@ export default function BuilderWorkspace() {
           <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-700">
             <Sparkles size={22} />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">What do you want to build?</h1>
+          <p className="text-sm font-semibold text-blue-600">Step 1 of 3</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Describe your app idea</h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
-            Describe your idea. Codely will generate a complete modern app project for you.
+            Use everyday language. Include who will use it and the main things it should do.
           </p>
         </div>
 
         <Card className="mt-8 p-4 sm:p-5">
           <label className="text-sm font-semibold text-slate-950" htmlFor="builder-prompt">
-            Describe your idea
+            What should your app do?
           </label>
           <textarea
             id="builder-prompt"
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             className="mt-3 min-h-44 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white"
-            placeholder="Example: Create a loan EMI calculator with amount, interest rate, months, EMI result, and download option."
+            placeholder="Example: Build a booking website for my cleaning business. Customers should choose a service, date and time, then send a booking request."
           />
+
+          {!prompt && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {quickIdeas.map((idea) => (
+                <button key={idea} type="button" onClick={() => setPrompt(idea)} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-600 hover:border-blue-200 hover:bg-blue-50">
+                  {idea}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
             <label className="text-sm font-semibold text-slate-950" htmlFor="project-type">
-              What type of project?
+              App type
               <select
                 id="project-type"
                 value={projectType}
@@ -310,12 +329,12 @@ export default function BuilderWorkspace() {
 
             <Button onClick={generateApp} disabled={loading} className="h-11 px-6">
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {loading ? 'Generating' : 'Generate My App'}
+              {loading ? 'Building your app...' : 'Build my app'}
             </Button>
           </div>
 
           <details className="mt-4 rounded-2xl border border-slate-200 bg-white p-4" open={showAdvanced} onToggle={(event) => setShowAdvanced(event.currentTarget.open)}>
-            <summary className="cursor-pointer text-sm font-semibold text-slate-700">Advanced settings</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">Optional settings</summary>
             <div className="mt-4 flex flex-wrap gap-2">
               {advancedOptions.map((option) => (
                 <button
@@ -417,7 +436,7 @@ export default function BuilderWorkspace() {
   );
 
   function renderOutput() {
-    if (activeTab === 'Preview') {
+    if (activeTab === 'Result') {
       const previewHtml = files.find((file) => file.path === 'preview.html')?.content;
       return (
         <div className="space-y-4">
@@ -456,7 +475,7 @@ export default function BuilderWorkspace() {
       );
     }
 
-    if (activeTab === 'Files') {
+    if (activeTab === 'Project Files') {
       return <div className="rounded-2xl border border-slate-200 p-4">{fileTree.map((node) => renderFileNode(node))}</div>;
     }
 

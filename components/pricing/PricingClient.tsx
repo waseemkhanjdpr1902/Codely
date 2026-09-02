@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { PlanName, setPlan } from '@/lib/local-workspace';
+import { auth } from '@/lib/firebase-client';
 
 type Plan = {
   name: PlanName;
@@ -22,32 +23,16 @@ const plans: Plan[] = [
     price: '₹0',
     period: '',
     amount: 0,
-    description: 'For trying Codely and building small tools.',
-    features: ['Unlimited testing generations', 'Basic tools', 'Copy code', 'Local storage projects'],
-  },
-  {
-    name: 'Starter',
-    price: '₹499',
-    period: '/month',
-    amount: 49900,
-    description: 'For students, freelancers, and small business owners.',
-    features: ['Open testing generations', 'Save projects', 'Export code', 'Error fixer', 'UI enhancer'],
+    description: 'Try Codely before subscribing.',
+    features: ['75 monthly credits', 'About 5 standard builds', 'Copy code', 'Local project saving'],
   },
   {
     name: 'Pro',
-    price: '₹999',
+    price: '₹1,999',
     period: '/month',
-    amount: 99900,
-    description: 'For regular builders who need all tools.',
-    features: ['Unlimited fair-use generations', 'All tools', 'Priority generation', 'Premium templates', 'Deployment guide', 'Commercial usage'],
-  },
-  {
-    name: 'Lifetime',
-    price: '₹2,999',
-    period: 'one-time',
-    amount: 299900,
-    description: 'For founders who want lifetime access.',
-    features: ['All Pro features', 'Lifetime access', 'Future updates'],
+    amount: 199900,
+    description: 'For founders and non-coders building real products.',
+    features: ['1,500 monthly credits', 'About 100 standard builds', 'All builder tools', 'ZIP export', 'Deployment guide', 'Commercial usage'],
   },
 ];
 
@@ -68,9 +53,10 @@ export default function PricingClient() {
     setBusyPlan(plan.name);
 
     try {
+      const token = await auth?.currentUser?.getIdToken();
       const orderResponse = await fetch('/api/payments/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ plan: plan.name, amount: plan.amount }),
       });
       const orderData = await orderResponse.json();
@@ -95,7 +81,7 @@ export default function PricingClient() {
         handler: async (response: any) => {
           const verifyResponse = await fetch('/api/payments/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             body: JSON.stringify({ ...response, plan: plan.name }),
           });
           const verifyData = await verifyResponse.json();
@@ -134,7 +120,7 @@ export default function PricingClient() {
         </div>
       )}
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-4">
+      <div className="mx-auto mt-10 grid max-w-3xl gap-4 md:grid-cols-2">
         {plans.map((plan) => (
           <Card key={plan.name} className={`p-6 ${plan.name === 'Pro' ? 'border-blue-300 shadow-md shadow-blue-100' : ''}`}>
             <h2 className="text-xl font-bold text-slate-950">{plan.name}</h2>

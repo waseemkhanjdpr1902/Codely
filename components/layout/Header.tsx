@@ -5,7 +5,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import Button from '../ui/Button';
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur">
@@ -18,14 +18,8 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
-          <Link href="/#features" className="hover:text-slate-950">
-            Tools
-          </Link>
           <Link href="/pricing" className="hover:text-slate-950">
             Pricing
-          </Link>
-          <Link href="/help" className="hover:text-slate-950">
-            Help
           </Link>
           {user ? (
             <Link href="/dashboard" className="hover:text-slate-950">
@@ -41,19 +35,14 @@ export default function Header() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Button href="/dashboard" variant="ghost" className="hidden sm:inline-flex">
-                {user.name}
-              </Button>
-              <Button onClick={logout} variant="secondary" className="hidden sm:inline-flex">
-                Logout
-              </Button>
+              <Button href="/dashboard" variant="ghost" className="hidden sm:inline-flex">My workspace</Button>
             </>
           ) : (
             <Button href="/login" variant="ghost" className="hidden sm:inline-flex">
               Login
             </Button>
           )}
-          <Button href="/builder">Start Building</Button>
+          <Button href="/builder">Build an app</Button>
         </div>
       </div>
     </header>

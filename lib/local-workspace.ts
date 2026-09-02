@@ -25,18 +25,18 @@ export type UsageState = {
   plan: PlanName;
 };
 
-export type PlanName = 'Free' | 'Starter' | 'Pro' | 'Lifetime';
+export type PlanName = 'Free' | 'Pro';
 
 const PROJECTS_KEY = 'codely.projects.v1';
 const USAGE_KEY = 'codely.usage.v1';
 const PLAN_KEY = 'codely.plan.v1';
 
 const planLimits: Record<PlanName, number> = {
-  Free: Number.POSITIVE_INFINITY,
-  Starter: Number.POSITIVE_INFINITY,
-  Pro: Number.POSITIVE_INFINITY,
-  Lifetime: Number.POSITIVE_INFINITY,
+  Free: 75,
+  Pro: 1500,
 };
+
+export const GENERATION_CREDIT_COST = 15;
 
 export function getPlanLimit(plan: PlanName) {
   return planLimits[plan];
@@ -105,19 +105,19 @@ export function getUsage(): UsageState {
 
 export function getRemainingGenerations(usage = getUsage()) {
   const limit = getPlanLimit(usage.plan);
-  if (!Number.isFinite(limit)) return Number.POSITIVE_INFINITY;
-  return Math.max(0, limit - usage.aiGenerations);
+  return Math.max(0, Math.floor((limit - usage.aiGenerations) / GENERATION_CREDIT_COST));
 }
 
 export function canGenerate() {
-  return true;
+  const usage = getUsage();
+  return usage.aiGenerations + GENERATION_CREDIT_COST <= getPlanLimit(usage.plan);
 }
 
 export function recordUsage(kind: 'aiGenerations' | 'errorFixes' | 'uiImprovements' | 'exports') {
   const usage = getUsage();
   const next = {
     ...usage,
-    [kind]: usage[kind] + 1,
+    [kind]: usage[kind] + (kind === 'aiGenerations' ? GENERATION_CREDIT_COST : 1),
   };
   writeJson(USAGE_KEY, next);
   return next;
@@ -133,7 +133,7 @@ export function setPlan(plan: PlanName) {
 export function getStoredPlan(): PlanName {
   if (!canUseStorage()) return 'Free';
   const plan = window.localStorage.getItem(PLAN_KEY) as PlanName | null;
-  return plan && ['Free', 'Starter', 'Pro', 'Lifetime'].includes(plan) ? plan : 'Free';
+  return plan && ['Free', 'Pro'].includes(plan) ? plan : 'Free';
 }
 
 export function downloadTextFile(fileName: string, content: string, type = 'text/plain') {

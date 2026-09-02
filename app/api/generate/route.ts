@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import vm from 'node:vm';
+import { consumeBuildCredits, isFirebaseAdminConfigured, verifyFirebaseRequest } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const body = await readBody(request);
 
     if (!body.mode || body.mode === 'execute') {
-      return NextResponse.json(await executeCode(body));
+      return NextResponse.json({ success: false, message: 'Public code execution is disabled for security.' }, { status: 403 });
     }
 
     const validationError = validateBody(body);
@@ -85,6 +85,13 @@ export async function POST(request: NextRequest) {
         message: validationError,
         details: [{ provider: 'server', reason: validationError }],
       });
+    }
+
+    let creditUsage = null;
+    if (isFirebaseAdminConfigured()) {
+      const user = await verifyFirebaseRequest(request);
+      if (!user) throw new Error('AUTH_REQUIRED');
+      creditUsage = await consumeBuildCredits(user.uid);
     }
 
     const generationRequest = createGenerationRequest(body);
@@ -100,6 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       provider: result.provider,
+      creditUsage,
       output: normalized,
       // Backward-compatible fields used by the current builder UI.
       title: getTitle(body),
@@ -121,6 +129,12 @@ export async function POST(request: NextRequest) {
           : undefined,
     });
   } catch (error) {
+    if (error instanceof Error && (error.message === 'AUTH_REQUIRED' || error.message === 'AUTH_INVALID')) {
+      return NextResponse.json({ success: false, message: 'Please sign in again.' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === 'INSUFFICIENT_CREDITS') {
+      return NextResponse.json({ success: false, message: 'You have used your available credits.' }, { status: 402 });
+    }
     const detail = normalizeUnknownError(error);
     logGenerateError('server', detail);
     return NextResponse.json({
@@ -140,6 +154,8 @@ async function readBody(request: NextRequest): Promise<GenerateBody> {
 }
 
 function validateBody(body: GenerateBody) {
+  const requestSize = [body.prompt, body.code, body.errorMessage, body.features].filter(Boolean).join('').length;
+  if (requestSize > 30000) return 'Request is too large. Keep the combined input below 30,000 characters.';
   if (body.mode === 'app' || body.mode === 'code' || body.mode === 'ai' || body.mode === 'prompt-app') {
     if (!body.prompt?.trim()) return 'Please enter a prompt before generating.';
   }
@@ -1290,67 +1306,4 @@ function redactSecrets(reason: string) {
   });
 
   return safeReason;
-}
-
-async function executeCode({ code = '', language = 'javascript' }: GenerateBody) {
-  if (!code.trim()) return { success: false, output: 'No code provided.' };
-  if (language === 'javascript') return executeJavaScriptLocally(code);
-
-  try {
-    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        language,
-        version: '*',
-        files: [{ content: code }],
-      }),
-    });
-
-    if (!response.ok) throw new ProviderError(`Runner returned ${response.status}`, response.status);
-    const data = await response.json();
-    return {
-      success: true,
-      output: data.run?.output || data.message || 'Program finished with no output.',
-    };
-  } catch (error) {
-    const detail = normalizeUnknownError(error);
-    return {
-      success: false,
-      message: 'Code runner failed.',
-      details: [detail],
-      output: detail.reason,
-    };
-  }
-}
-
-function executeJavaScriptLocally(code: string) {
-  const logs: string[] = [];
-  const sandbox = {
-    console: {
-      log: (...args: unknown[]) => logs.push(args.map(formatLogArg).join(' ')),
-      error: (...args: unknown[]) => logs.push(args.map(formatLogArg).join(' ')),
-    },
-  };
-
-  try {
-    vm.createContext(sandbox);
-    vm.runInContext(code, sandbox, { timeout: 1500 });
-    return {
-      success: true,
-      output: logs.join('\n') || 'Program finished with no output.',
-    };
-  } catch (error) {
-    const detail = normalizeUnknownError(error);
-    return {
-      success: false,
-      message: 'Code runner failed.',
-      details: [detail],
-      output: detail.reason,
-    };
-  }
-}
-
-function formatLogArg(arg: unknown) {
-  return typeof arg === 'string' ? arg : JSON.stringify(arg);
 }

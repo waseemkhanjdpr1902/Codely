@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isFirebaseAdminConfigured, verifyFirebaseRequest } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const planAmounts: Record<string, number> = {
-  Starter: 49900,
-  Pro: 99900,
-  Lifetime: 299900,
+  Pro: 199900,
 };
 
 export async function POST(request: NextRequest) {
+  if (isFirebaseAdminConfigured()) {
+    try {
+      await verifyFirebaseRequest(request);
+    } catch {
+      return NextResponse.json({ success: false, error: 'Please sign in again.' }, { status: 401 });
+    }
+  }
   const { plan } = await request.json();
   const amount = planAmounts[plan];
 
